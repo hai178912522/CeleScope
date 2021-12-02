@@ -110,42 +110,50 @@
       <h1 align="center">DynaSCOPE Report </h1>
 
       {% if sample_summary is defined %}
-      {% include "html/common/sample_summary.html"%}
+      {% set step_summary = sample_summary %}
+      {% include "html/utils/step.html"%}
       {% endif %}
 
       {% if barcode_summary is defined %}
-      {% include "html/common/barcode_summary.html"%}
+      {% set step_summary = barcode_summary %}
+      {% include "html/utils/step.html"%}
       {% endif %}
 
       {% if cutadapt_summary is defined %}
-      {% include "html/common/cutadapt_summary.html"%}
+      {% set step_summary = cutadapt_summary %}
+      {% include "html/utils/step.html"%}
       {% endif %}
 
-      {% if star_summary is defined %}
-      {% include "html/rna/star_summary.html"%}
+      {% if star_rna_summary is defined %}
+      {% set step_summary = star_rna_summary %}
+      {% include "html/rna/star_summary.html" %}
       {% endif %}
 
-      {% if featureCounts_summary is defined%}
-      {% include "html/rna/featureCounts_summary.html"%}
+      {% if featurecounts_summary is defined%}
+      {% set step_summary = featurecounts_summary %}
+      {% include "html/utils/step.html" %}
       {% endif %}
 
-      {% if umi_summary is defined %}
-      {% include "html/rna/umi_summary.html"%}
+      {% if count_summary is defined %}
+      {% set step_summary = count_summary %}
+      {% include "html/rna/count_summary.html"%}
       {% endif %}
 
-      {% if cluster_tsne is defined %}
+      {% if analysis_rna_summary is defined %}
+      {% set step_summary = analysis_rna_summary %}
       {% include "html/rna/analysis_summary.html"%}
       {% endif %}
 
-      {% if substitution is defined %}
+      {% if subsitution_summary is defined %}
+      {% set step_summary = subsitution_summary %}
       {% include "html/dynaseq/substitution_summary.html"%}
       {% endif %}
 
-      {% if replacement is defined %}
+      {% if replacement_summary is defined %}
       {% include "html/dynaseq/replacement_summary.html"%}
       {% endif %}
 
-      {% if replace_tsne is defined %}
+      {% if replace_tsne_summary is defined %}
       {% include "html/dynaseq/replace_tsne_summary.html"%}
       {% endif %}
 

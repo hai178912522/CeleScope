@@ -21,8 +21,8 @@ class Replace_tsne(Step):
     - `{sample}.rep_in_tsne_top10` Top 10 replace genes in each cluster.
     """
 
-    def __init__(self, args):
-        Step.__init__(self, args)
+    def __init__(self, args,display_title=None):
+        Step.__init__(self, args,display_title=display_title)
 
         # input files
         self.sample = args.sample
@@ -47,7 +47,6 @@ class Replace_tsne(Step):
 
         # report
         self.report_prepare(div_item, tbldiv)
-        self.clean_up()
 
 
 

@@ -20,8 +20,8 @@ class Subsitution(Step):
     - `{sample}.substitution.txt` Tab-separated table of the overall conversion rates.
     """
 
-    def __init__(self, args):
-        Step.__init__(self, args)
+    def __init__(self, args,display_title=None):
+        Step.__init__(self, args,display_title=display_title)
 
         # input files
         self.sample = args.sample 
@@ -31,16 +31,26 @@ class Subsitution(Step):
         # output files
         self.outstat = os.path.join(self.outdir, self.sample+'.substitution.txt')
 
-    
+    def add_help(self):
+        self.add_help_content(
+            name='Substitution rate',
+            content='Overall nucleotide substitution rates in a sample'
+        )
+        self.add_help_content(
+            name='Turn-over rate',
+            content='Labeled transcripts (UMI) fraction per cell or per gene'
+        )
+
+
     @utils.add_log
     def run(self):
         # overall rate
         for_base,rev_base,is_forward,is_reverse = self.get_sub_tag(self.bam_file)
         self.sub_stat(for_base,rev_base,is_forward,is_reverse,self.outstat)
         div_item = self.sub_plot(self.outstat)
-
         self.report_prepare(div_item)
-        self.clean_up()
+        self.add_help()
+        
 
 
     @utils.add_log
@@ -197,7 +207,7 @@ class Subsitution(Step):
 @utils.add_log
 def substitution(args):
 
-    with Subsitution(args) as runner:
+    with Subsitution(args,display_title="Dynaseq Analysis") as runner:
         runner.run()
 
 def get_opts_substitution(parser, sub_program):

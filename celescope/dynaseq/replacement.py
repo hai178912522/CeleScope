@@ -28,8 +28,8 @@ class Replacement(Step):
     - `{sample}.fraction_of_newRNA_matrix.txt` Fraction of new RNA of each cell and gene.
     """
 
-    def __init__(self, args):
-        Step.__init__(self, args)
+    def __init__(self, args,display_title=None):
+        Step.__init__(self, args,display_title=display_title)
 
         # input files
         self.outdir = args.outdir
@@ -66,7 +66,6 @@ class Replacement(Step):
 
         # report
         self.report_prepare(div_item)
-        self.clean_up()
 
         # clean
         cmd=['rm', self.outread]

@@ -23,6 +23,10 @@ def s_common(parser):
     return parser
 
 class ExtendEncoder(json.JSONEncoder):
+    """
+    convert numpy data types to python data types
+    json does not recognize NumPy data types 
+    """
     def default(self, obj):
         if isinstance(obj, (np.int64,np.int32)):
             return int(obj)
@@ -32,6 +36,7 @@ class ExtendEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             return json.JSONEncoder.default(self, obj)
+
 
 class Step:
     """

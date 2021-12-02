@@ -34,8 +34,8 @@ class Analysis_variant(Step, AnalysisMixin):
     - `RID`: Target region ID. This column will be added when `--panel` option were provided.
     """
 
-    def __init__(self, args):
-        Step.__init__(self, args)
+    def __init__(self, args,display_title=None):
+        Step.__init__(self, args,display_title=display_title)
         AnalysisMixin.__init__(self, args)
         self.filter_variant_count_file = args.filter_variant_count_file
         self.CID_file = args.CID_file
@@ -51,6 +51,61 @@ class Analysis_variant(Step, AnalysisMixin):
         self.vcf_GT = f'{self.out_prefix}_addGT.vcf'
         buildver = self.annovar_section['buildver']
         self.annovar_file = f'{self.out_prefix}.{buildver}_multianno.txt'
+
+    def add_help(self):
+        self.add_help_content(
+            name='Variants Table',
+            content=''
+        )
+        self.add_help_content(
+            name='VID',
+            content='variant ID'
+        )
+        self.add_help_content(
+            name='Chrom',
+            content='chromosome name'
+        )
+        self.add_help_content(
+            name='Pos',
+            content='the 1-based position of the variation on the given sequence'
+        )
+        self.add_help_content(
+            name='Alleles',
+            content='REF(reference base or bases in the case of an indel) - ALT(alternative alleles)'
+        )
+        self.add_help_content(
+            name='Gene',
+            content='gene symbol'
+        )
+        self.add_help_content(
+            name='ncell_cover',
+            content='number of cells with read count at this position'
+        )
+        self.add_help_content(
+            name='ncell_alt',
+            content='number of cells with variant read count only'
+        )
+        self.add_help_content(
+            name='ncell_ref',
+            content='number of cells with reference read count only'
+        )
+        self.add_help_content(
+            name='ncell_ref_and_alt',
+            content='number of cells with both variant and reference read count'
+        )
+        self.add_help_content(
+            name='mRNA',
+            content='A standard nomenclature is used in specifying the sequence changes'
+        )
+        self.add_help_content(
+            name='Protein',
+            content='A standard nomenclature is used in specifying the sequence changes'
+        )
+        self.add_help_content(
+            name='COSMIC',
+            content='COSMIC annotation'
+        )
+
 
     @utils.add_log
     def ncell_metrics(self):
@@ -200,10 +255,10 @@ class Analysis_variant(Step, AnalysisMixin):
         df_vcf = self.get_df_table()
         table_dict = Step.get_table(title='Variant table', table_id='variant_table', df_table=df_vcf.drop(["CID"],axis = 1))
 
-        self.add_data_item(cluster_tsne=cluster_tsne)
-        self.add_data_item(count_tsne=count_tsne)
-        self.add_data_item(table_dict=table_dict)
-        self.clean_up()
+        self.add_data(cluster_tsne=cluster_tsne)
+        self.add_data(count_tsne=count_tsne)
+        self.add_data(table_dict=table_dict)
+        self.add_help()
         self.get_venn_plot()
 
     def read_annovar_config(self):
@@ -256,7 +311,7 @@ class Analysis_variant(Step, AnalysisMixin):
 
 @utils.add_log
 def analysis_snp(args):
-    with Analysis_variant(args) as runner:
+    with Analysis_variant(args,display_title="Analysis") as runner:
         runner.run()
 
 
