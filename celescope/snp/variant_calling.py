@@ -7,12 +7,12 @@ from celescope.rna.mkref import Mkref_rna
 
 class Variant_calling(Step):
     """
-    Features
+    ## Features
     - Perform variant calling at single cell level.
 
-    Output
-
-    - `{sample}_norm.vcf` Normalized vcf file.
+    ## Output
+    - `{sample}_raw.vcf` Variants are called with bcftools default settings.
+    - `{sample}_norm.vcf` Indels are left-aligned and normalized. See https://samtools.github.io/bcftools/bcftools.html#norm for more details.
     """
 
     def __init__(self, args):

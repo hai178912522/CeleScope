@@ -31,10 +31,10 @@ np.random.seed(0)
 
 class Count(Step):
     """
-    Features
+    ## Features
     - Cell-calling: Distinguish cell barcodes from background barcodes. 
     - Generate expression matrix.
-    Output
+    ## Output
     - `{sample}_all_matrix` The expression matrix of all detected barcodes. 
         Can be read in by calling the `Seurat::Read10X` function.
     - `{sample}_matrix_10X` The expression matrix of the barcode that is identified to be the cell. 
@@ -415,7 +415,7 @@ class Count(Step):
         np.random.shuffle(cell_read_index)
 
         format_str = "%.2f\t%.2f\t%.2f\n"
-        res_dict = {
+        downsample_dict = {
             "fraction": [],
             "umi_saturation": [],
             "read_saturation": [],
@@ -428,12 +428,12 @@ class Count(Step):
                 umi_saturation, read_saturation, geneNum_median = Count.sub_sample(
                     fraction, df_cell, cell_read_index)
                 fh.write(format_str % (fraction, geneNum_median, umi_saturation))
-                res_dict["fraction"].append(round(fraction, 1))
-                res_dict["umi_saturation"].append(round(umi_saturation, 2))
-                res_dict["read_saturation"].append(round(read_saturation, 2))
-                res_dict["median_gene"].append(geneNum_median)
+                downsample_dict["fraction"].append(round(fraction, 1))
+                downsample_dict["umi_saturation"].append(round(umi_saturation, 2))
+                downsample_dict["read_saturation"].append(round(read_saturation, 2))
+                downsample_dict["median_gene"].append(geneNum_median)
 
-        self.downsample_dict = res_dict
+        self.downsample_dict = downsample_dict
 
 
 @utils.add_log

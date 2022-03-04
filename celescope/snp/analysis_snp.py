@@ -11,13 +11,13 @@ from celescope.__init__ import HELP_DICT, ROOT_PATH
 
 class Analysis_snp(Step):
     """
-    Features
+    ## Features
     - Annotate variants with [Annovar](https://annovar.openbioinformatics.org/en/latest/).
 
-    Output
-    - `{sample}_gt.csv` genotypes of variants of each cell. Row is variant, column is cell.
+    ## Output
+    - `{sample}_gt.csv` Genotypes of variants of each cell. Rows are variants and columns are cells.
     - `{sample}_variant_ncell.csv` Number of cells with each genotype.
-    - `{sample}_variant_table.csv` Annotated `{sample}_variant_ncell.csv`.
+    - `{sample}_variant_table.csv` `{sample}_variant_ncell.csv` annotated with COSMIC(https://cancer.sanger.ac.uk/cosmic).
 
     """
 

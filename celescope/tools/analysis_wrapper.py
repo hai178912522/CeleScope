@@ -1,8 +1,5 @@
-import subprocess
 import scanpy as sc
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import pandas as pd
 
 from celescope.tools import utils
@@ -378,3 +375,5 @@ class Report_runner(Step):
         df_marker = pd.read_csv(df_marker_file, sep="\t")
         return df_tsne, df_marker
 
+    def run(self):
+        pass

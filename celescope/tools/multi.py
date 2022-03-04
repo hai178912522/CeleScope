@@ -132,7 +132,7 @@ class Multi():
         self.sample_dict = {}
 
         self.logdir = None
-        self.sjmdir = None
+        self.sjm_dir = None
         self.sjm_file = None
 
         self.sjm_cmd = ''

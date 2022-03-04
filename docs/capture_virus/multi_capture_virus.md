@@ -16,7 +16,79 @@ multi_capture_virus \
 ```
 sh ./shell/{sample}.sh
 ```
+## Features
+### mkref
+- Create a virus genome reference directory.
 
+
+### barcode
+
+- Demultiplex barcodes.
+- Filter invalid R1 reads, which includes:
+    - Reads without linker: the mismatch between linkers and all linkers in the whitelist is greater than 2.  
+    - Reads without correct barcode: the mismatch between barcodes and all barcodes in the whitelist is greater than 1.  
+    - Reads without polyT: the number of T bases in the defined polyT region is less than 10.
+    - Low quality reads: low sequencing quality in barcode and UMI regions.
+
+
+### cutadapt
+- Trim adapters in R2 reads with cutadapt. Default adapters includes:
+    - polyT=A{18}, 18 A bases. 
+    - p5=AGATCGGAAGAGCACACGTCTGAACTCCAGTCA, Illumina p5 adapter.
+
+### consensus
+- Consensus all the reads of the same (barcode, UMI) combinations into one read(UMI). It will go through the sequence residue by residue and 
+count up the number of each type of residue (ie. A or G or T or C for DNA) in all sequences in the
+alignment. If the following conditions are met, the consensus sequence will be the most common residue in the alignment:
+1. the percentage of the most common residue type > threshold(default: 0.5);
+2. most common residue reads >= min_consensus_read;
+otherwise an ambiguous character(N) will be added.
+
+
+### star_virus
+- Map reads to the viral genome using STAR.
+
+
+### count_virus
+
+- Taking the bam file as input, count the number of UMIs and reads mapped to the viral genome.
+
+
+### filter_virus
+- Filter background virus UMIs base on a UMI threshold.
+There are three methods to determine the UMI threshold:
+    - 'auto' : Using a method similar to cell calling method.
+    - 'otsu' : UMI counts are first log 2 transformed and then the threshold is determined by [Otsu's method](https://en.wikipedia.org/wiki/Otsu%27s_method)
+    - 'hard' : Using User provided UMI threshold.
+
+
+## Output files
+### mkref
+
+- STAR genome index files
+- Genome config file
+
+
+### barcode
+
+- `01.barcode/{sample}_2.fq(.gz)` Demultiplexed R2 reads. Barcode and UMI are contained in the read name. The format of 
+the read name is `{barcode}_{UMI}_{read ID}`.
+
+### cutadapt
+- `cutadapt.log` Cutadapt output log file.
+- `{sample}_clean_2.fq.gz` R2 reads file without adapters.
+
+### consensus
+- `{sample}_consensus.fq` Fastq file after consensus.
+
+### star_virus
+- `{sample}_virus_Aligned.sortedByCoord.out.bam` : Aligned BAM sorted by coordinate.
+
+### count_virus
+- {sample_raw_read_count.json} : barcode - UMI - raw_reads_count
+
+### filter_virus
+- {sample}_filtered_UMI_tsne.csv : Filtered virus UMI counts of each cell barcode.
 
 ## Arguments
 `--mapfile` Mapfile is a tab-delimited text file with as least three columns. Each line of mapfile represents paired-end fastq files.
@@ -119,6 +191,8 @@ To reduce the number of falsely trimmed bases, the alignment algorithm requires 
 at least {overlap} bases match between adapter and read.
 
 `--insert` Default `150`. Read2 insert length.
+
+`--cutadapt_param` Other cutadapt parameters. For example, --cutadapt_param "-g AAA".
 
 `--threshold` Default 0.5. Valid base threshold.
 
