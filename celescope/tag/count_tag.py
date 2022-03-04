@@ -2,17 +2,18 @@
 assign cell identity based on SNR and UMI_min
 """
 
-from celescope.__init__ import ROOT_PATH, HELP_DICT
-from celescope.tools.step import Step, s_common
-from celescope.tools import utils
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
 import matplotlib
 
-matplotlib.use('Agg')
+from celescope.__init__ import ROOT_PATH, HELP_DICT
+from celescope.tools.step import Step, s_common
+from celescope.tools import utils
+from celescope.tools import analysis_wrapper
 
+matplotlib.use('Agg')
 
 def get_opts_count_tag(parser, sub_program):
     parser.add_argument(
@@ -42,11 +43,9 @@ Smaller `coefficient` will cause less *multiplet* in the tag assignment.""",
     )
     if sub_program:
         parser.add_argument("--read_count_file", help="Tag read count file.", required=True)
-        parser.add_argument("--match_dir", help=HELP_DICT['match_dir'])
         parser.add_argument("--matrix_dir", help=HELP_DICT['matrix_dir'])
-        parser.add_argument("--tsne_file", help=HELP_DICT['tsne_file'])
+        analysis_wrapper.get_opts_analysis_match(parser, sub_program)
 
-        s_common(parser)
 
 
 def count_tag(args):
@@ -87,11 +86,14 @@ class Count_tag(Step):
         self.df_read_count = pd.read_csv(self.read_count_file, sep="\t", index_col=0)
 
         if utils.check_arg_not_none(self.args, 'match_dir'):
-            self.match_cell_barcodes, _match_cell_number = utils.get_barcode_from_match_dir(args.match_dir)
+            self.match_cell_barcodes, self.match_cell_number = utils.get_barcode_from_match_dir(args.match_dir)
         elif utils.check_arg_not_none(self.args, 'matrix_dir'):
             self.match_cell_barcodes = utils.get_barcode_from_matrix_dir(args.matrix_dir)
         else:
             raise ValueError("--match_dir or --matrix_dir is required.")
+
+        report_runner = analysis_wrapper.Report_runner(self.args)
+        self.df_tsne, self.df_marker = report_runner.get_df()
 
         # init
         self.no_noise = False
@@ -254,7 +256,7 @@ class Count_tag(Step):
             Count_tag.tag_type, UMI_min=UMI_min, SNR_min=SNR_min, dim=self.dim, no_noise=self.no_noise, axis=1)
         df_UMI_cell.to_csv(self.UMI_tag_file, sep="\t")
 
-        df_tsne = pd.read_csv(self.tsne_file, sep="\t", index_col=0)
+        df_tsne = self.df_tsne
         df_tsne_tag = pd.merge(
             df_tsne,
             df_UMI_cell,
@@ -294,14 +296,14 @@ class Count_tag(Step):
                 self.add_metric(
                     name=tag_name + ' Cells',
                     value=int(sr_tag_count[tag_name]),
-                    total=self.n_match_barcode,
+                    total=self.match_cell_number,
                 )
                 sr_tag_count.drop(tag_name, inplace=True)
         for tag_name in sorted(sr_tag_count.index):
             self.add_metric(
                 name=tag_name + ' Cells',
                 value=int(sr_tag_count[tag_name]),
-                total=self.n_match_barcode,
+                total=self.match_cell_number,
             )
 
         # seurat hashtag

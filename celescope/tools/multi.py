@@ -433,7 +433,7 @@ job_end
     def merge_report(self):
         step = "merge_report"
         steps_str = ",".join(self.__STEPS__)
-        samples = ','.join(self.fq_dict.keys())
+        samples = ','.join(self.sample_dict.keys())
         app = TOOLS_DIR + '/merge_table.py'
         cmd = (
             f'python {app} --samples {samples} '

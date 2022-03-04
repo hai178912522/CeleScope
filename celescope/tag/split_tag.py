@@ -69,7 +69,6 @@ class Split_tag(Step):
             self.raw_mat, self.raw_features_path, self.raw_barcodes = read_raw_matrix(matrix_10X_dir)
 
         if args.split_fastq:
-            self.rna_fq_file = glob.glob(f'{args.match_dir}/*barcode/*_2.fq*')[0]
 
             fastq_outdir = f'{args.outdir}/fastqs/'
             os.system(f'mkdir -p {fastq_outdir}')
@@ -94,7 +93,7 @@ class Split_tag(Step):
     @utils.add_log
     def write_r2_fastq_files(self):
         read_num = 0
-        with pysam.FastxFile(self.rna_fq_file, 'r') as rna_fq:
+        with pysam.FastxFile(self.args.clean_R2_read_to_split, 'r') as rna_fq:
             for read in rna_fq:
                 read_num += 1
                 attr = read.name.strip("@").split("_")
@@ -113,11 +112,12 @@ class Split_tag(Step):
 
     @utils.add_log
     def write_r1_fastq_files(self):
-        with pysam.FastxFile(self.args.R1_read, 'r') as r1_read:
+        with pysam.FastxFile(self.args.raw_R1_read_to_split, 'r') as r1_read:
             for read_index, read in enumerate(r1_read, start=1):
                 for tag in self.tag_read_index_dict:
                     if read_index in self.tag_read_index_dict[tag]:
                         self.r1_fastq_files_handle[tag].write(str(read) + '\n')
+                        break
 
         for tag in self.r1_fastq_files_handle:
             self.r1_fastq_files_handle[tag].close()
@@ -179,10 +179,11 @@ def get_opts_split_tag(parser, sub_program):
         help="If used, will split scRNA-Seq vdj count file according to tag assignment.",
         action='store_true',
     )
-    parser.add_argument("--vdj_dir", help="Match celescope vdj directory. Required when --split_vdj is specified.")
     if sub_program:
+        parser.add_argument("--vdj_dir", help="Match celescope vdj directory. Use together with --split_vdj")
         parser.add_argument("--umi_tag_file", help="UMI tag file.", required=True)
         parser.add_argument("--match_dir", help=HELP_DICT['match_dir'])
-        parser.add_argument("--matrix_dir", help="Match celescope scRNA-Seq matrix directory.")
-        parser.add_argument("--R1_read", help='R1 read path.')
+        parser.add_argument("--matrix_dir", help=HELP_DICT['matrix_dir'])
+        parser.add_argument("--raw_R1_read_to_split", help='raw R1 read to split. Use together with --split_fastq')
+        parser.add_argument("--clean_R2_read_to_split", help='clean R2 read(from 02.cutadapt/) to split. Use together with --split_fastq')
         s_common(parser)
