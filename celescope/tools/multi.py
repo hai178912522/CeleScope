@@ -2,16 +2,14 @@ import argparse
 import glob
 import itertools
 import os
-import re
 from collections import defaultdict
-from celescope.tools.sample import sample
 
 import numpy as np
 import pandas as pd
 
 import celescope
 from celescope.tools.__init__ import FILTERED_MATRIX_DIR_SUFFIX
-from celescope.tools import step, utils
+from celescope.tools import utils
 from celescope.celescope import ArgFormatter
 from celescope.__init__ import HELP_DICT
 
@@ -138,8 +136,6 @@ class Multi():
         self.sjm_cmd = ''
         self.sjm_order = ''
         self.shell_dict = defaultdict(str)
-
-        self.rule_cmd = ''
 
         self.outdir_dic = {}
 
