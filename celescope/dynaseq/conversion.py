@@ -74,10 +74,7 @@ class Conversion(Step):
         AnnoteLocs = {}
         for read in bamfile.fetch():
             try:
-                if read.get_tag('ST') == '+':
-                    locs = read.get_tag('TL')
-                else:
-                    locs = read.get_tag('AL')
+                locs = read.get_tag('TL') if read.get_tag('ST') == '+' else read.get_tag('AL')
                 if locs[0] != 0:
                     if read.reference_name in ContigLocs:
                         ContigLocs[read.reference_name].extend(locs)
@@ -90,7 +87,7 @@ class Conversion(Step):
                             else:
                                 AnnoteLocs[read.reference_name][each] = read.get_tag('XT')
                     else:
-                        for i, each in enumerate(locs):
+                        for each in locs:
                             if each not in AnnoteLocs[read.reference_name]:
                                 AnnoteLocs[read.reference_name][each] = read.get_tag('XT')
             except (ValueError, KeyError):
@@ -180,25 +177,30 @@ class Conversion(Step):
         except (UnicodeDecodeError):
             refseq = ''
 
-        for base in total_content.keys():
-            total_content[base] += refseq.count(base)
+        for base, value in total_content.items():
+            value += refseq.count(base)
         for pair in read.get_aligned_pairs(with_seq=True):
             try:
-                if pair[0] is not None and pair[1] is not None and pair[2] is not None:
-                    if str(pair[2]).islower() and not read.query_qualities[pair[0]] < qual:
-                        specific_conversions[(pair[2], read.seq[pair[0]])] += 1
-                        if (pair[2], read.seq[pair[0]]) == ('t', 'C'):
-                            tC_loc.append(pair[1])
-                        if (pair[2], read.seq[pair[0]]) == ('a', 'G'):
-                            aG_loc.append(pair[1])
+                if (
+                    pair[0] is not None
+                    and pair[1] is not None
+                    and pair[2] is not None
+                    and str(pair[2]).islower()
+                    and not read.query_qualities[pair[0]] < qual
+                ):
+                    specific_conversions[(pair[2], read.seq[pair[0]])] += 1
+                    if (pair[2], read.seq[pair[0]]) == ('t', 'C'):
+                        tC_loc.append(pair[1])
+                    if (pair[2], read.seq[pair[0]]) == ('a', 'G'):
+                        aG_loc.append(pair[1])
             except (UnicodeDecodeError, KeyError):
                 continue
         SC_tag = self.createTag(specific_conversions)
         TC_tag = self.createTag(total_content)
 
-        if len(tC_loc) == 0:
+        if not tC_loc:
             tC_loc.append(0)
-        if len(aG_loc) == 0:
+        if not aG_loc:
             aG_loc.append(0)
         return SC_tag, TC_tag, tC_loc, aG_loc
 

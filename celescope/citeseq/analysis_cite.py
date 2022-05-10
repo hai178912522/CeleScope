@@ -25,7 +25,7 @@ class Analysis_cite(Step):
     def run(self):
 
         rds = self.tsne_dict['rds']
-        app = ROOT_PATH + "/citeseq/analysis_cite.R"
+        app = f"{ROOT_PATH}/citeseq/analysis_cite.R"
         cmd = (
             f'Rscript {app} '
             f'--rds {rds} '

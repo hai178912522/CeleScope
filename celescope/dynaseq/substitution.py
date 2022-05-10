@@ -59,14 +59,14 @@ class Substitution(Step):
                 if snpmatch and totmatch:
                     if read.is_reverse:
                         for j in range(1, len(ref_tags)):
-                            rev_base[ref_tags[j]] += int(totmatch.group(j))
+                            rev_base[ref_tags[j]] += int(totmatch[j])
                         for i in range(1, len(snp_tags)):
-                            is_reverse[snp_tags[i]] += int(snpmatch.group(i))
+                            is_reverse[snp_tags[i]] += int(snpmatch[i])
                     else:
                         for j in range(1, len(ref_tags)):
-                            for_base[ref_tags[j]] += int(totmatch.group(j))
+                            for_base[ref_tags[j]] += int(totmatch[j])
                         for i in range(1, len(snp_tags)):
-                            is_forward[snp_tags[i]] += int(snpmatch.group(i))
+                            is_forward[snp_tags[i]] += int(snpmatch[i])
             except (ValueError, KeyError):
                 continue
         bamfile.close()
@@ -88,15 +88,14 @@ class Substitution(Step):
                    'cA': 'C_to_A', 'cG': 'C_to_G', 'cT': 'C_to_T',
                    'gA': 'G_to_A', 'gC': 'G_to_C', 'gT': 'G_to_T',
                    'tA': 'T_to_A', 'tC': 'T_to_C', 'tG': 'T_to_G'}
-        outw = open(outfile, 'w')
-        for x in ['a', 'c', 'g', 't']:
-            fbase = for_base[x]
-            rbase = rev_base[subdict[x]]
-            for y in convertdict[x]:
-                fcov = is_forward[y]*100 / float(fbase)
-                rcov = is_reverse[subdict[y]]*100 / float(rbase)
-                outw.write(outdict[y]+'\t'+"%.3f" % fcov+'\t'+"%.3f" % rcov+'\n')
-        outw.close()
+        with open(outfile, 'w') as outw:
+            for x in ['a', 'c', 'g', 't']:
+                fbase = for_base[x]
+                rbase = rev_base[subdict[x]]
+                for y in convertdict[x]:
+                    fcov = is_forward[y]*100 / float(fbase)
+                    rcov = is_reverse[subdict[y]]*100 / float(rbase)
+                    outw.write(outdict[y]+'\t'+"%.3f" % fcov+'\t'+"%.3f" % rcov+'\n')
 
     @utils.add_log
     def sub_plot(self, txt):
@@ -106,25 +105,23 @@ class Substitution(Step):
         fig = go.Figure()
         # 设置颜色：
         import plotly.express as px
-        num4colors = 0
         num4rainbow = 0
         colors_list = []
-        while num4colors < 100:
+        for _ in range(100):
             if num4rainbow == 9:
                 num4rainbow = 0
             colors_list.append(px.colors.qualitative.Plotly[num4rainbow])
-            num4colors += 1
             num4rainbow += 1
 
         num4sample = 0
         colors4sample = {}
         num4x = 0
 
+        legend_show = True
         for sample in df['sample'].unique():
-            legend_show = True
             colors4sample[sample] = colors_list[num4sample]
             num4sample += 1
-            flag_x = 'x' + str(num4x+1)
+            flag_x = f'x{str(num4x+1)}'
             df_plot = df[df['sample'] == sample]
             num4x += 1
 
@@ -154,18 +151,15 @@ class Substitution(Step):
         gap4bar = per/len(df['sample'].unique())
         num4x = 0
         for typeB in df['sample'].unique():
-            if num4x == 0:
-                flag_x = 'xaxis'
-            else:
-                flag_x = 'xaxis' + str(num4x+1)
-            anchor_x = 'x'+str(num4x+1)
+            flag_x = 'xaxis' if num4x == 0 else f'xaxis{str(num4x+1)}'
+            anchor_x = f'x{str(num4x+1)}'
             num4x += 1
             fig['layout'][flag_x] = dict(domain=[per*num4x, per*(num4x+1)-gap4bar], anchor=anchor_x, title=typeB)
 
         fig.update_layout(plot_bgcolor='#FFFFFF')
         fig.update_xaxes(showgrid=False, linecolor='black', showline=True, ticks='outside', showticklabels=False)
         fig.update_yaxes(showgrid=False, linecolor='black', showline=True, ticks='outside')
-        width_num = 400 * (len(df['sample'].unique()) * len(df['sample'].unique())) / (5*12)  # 控制柱形图的宽度
+        width_num = 400 * len(df['sample'].unique())**2 / (5*12)
         fig.update_layout(height=500, width=width_num)
         fig.update_layout(legend=dict(orientation="h"))
         fig.update_layout(legend=dict(
@@ -185,9 +179,7 @@ class Substitution(Step):
             title_standoff=25
         )
 
-        div = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
-
-        return div
+        return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
 
     def report_prepare(self, outdiv):
         self.add_data(substitution=outdiv)

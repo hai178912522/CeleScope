@@ -83,11 +83,11 @@ def add_mem(func):
 
 
 def generic_open(file_name, *args, **kwargs):
-    if file_name.endswith('.gz'):
-        file_obj = gzip.open(file_name, *args, **kwargs)
-    else:
-        file_obj = open(file_name, *args, **kwargs)
-    return file_obj
+    return (
+        gzip.open(file_name, *args, **kwargs)
+        if file_name.endswith('.gz')
+        else open(file_name, *args, **kwargs)
+    )
 
 
 class Gtf_dict(dict):
@@ -130,10 +130,7 @@ class Gtf_dict(dict):
                 if gtf_type == 'gene':
                     gene_id = gene_id_pattern.findall(attributes)[-1]
                     gene_names = gene_name_pattern.findall(attributes)
-                    if not gene_names:
-                        gene_name = gene_id
-                    else:
-                        gene_name = gene_names[-1]
+                    gene_name = gene_names[-1] if gene_names else gene_id
                     c[gene_name] += 1
                     if c[gene_name] > 1:
                         if gene_id in id_name:
@@ -173,10 +170,7 @@ def read_one_col(file):
 
 def get_bed_file_path(panel):
     bed_file_path = f'{ROOT_PATH}/data/snp/panel/{panel}.bed'
-    if not os.path.exists(bed_file_path):
-        return None
-    else:
-        return bed_file_path
+    return bed_file_path if os.path.exists(bed_file_path) else None
 
 
 def get_gene_region_from_bed(panel):
@@ -204,9 +198,8 @@ def read_fasta(fasta_file, equal=False):
             seq = record.sequence
             if index == 0:
                 length = len(seq)
-            if equal:
-                if length != len(seq):
-                    raise Exception(f"{fasta_file} have different seq length")
+            if equal and length != len(seq):
+                raise Exception(f"{fasta_file} have different seq length")
             fa_dict[record.name] = seq
     return fa_dict, length
 
@@ -219,15 +212,11 @@ def hamming_correct(string1, string2):
 
 
 def hamming_distance(string1, string2):
-    distance = 0
     length = len(string1)
     length2 = len(string2)
     if (length != length2):
         raise Exception(f"string1({length}) and string2({length2}) do not have same length")
-    for i in range(length):
-        if string1[i] != string2[i]:
-            distance += 1
-    return distance
+    return sum(string1[i] != string2[i] for i in range(length))
 
 
 def format_number(number: int) -> str:
@@ -259,7 +248,7 @@ def parse_annovar(annovar_file):
             else:
                 changes = attrs[7]
                 cosmic = attrs[8]
-            change_list = list()
+            change_list = []
             for change in changes.split(','):
                 change_attrs = change.split(':')
                 mRNA = ''
@@ -272,7 +261,7 @@ def parse_annovar(annovar_file):
                         mRNA = f'{exon}:{base}'
                     if change_attr.startswith('p.'):
                         protein = change_attr.strip('p.')
-                if not (mRNA, protein) in change_list:
+                if (mRNA, protein) not in change_list:
                     change_list.append((mRNA, protein))
             combine = [','.join(item) for item in list(zip(*change_list))]
             mRNA = combine[0]
@@ -302,20 +291,17 @@ def glob_file(pattern_list: list):
 
     match_list = []
     for pattern in pattern_list:
-        files = glob.glob(pattern)
-        if files:
-            for f in files:
-                match_list.append(f)
-    
-    if len(match_list) == 0:
+        if files := glob.glob(pattern):
+            match_list.extend(iter(files))
+    if not match_list:
         raise FileNotFoundError(f'No file found for {pattern_list}')
-    
+
     if len(match_list) > 1:
         raise MultipleFileFoundError(
             f'More than one file found for pattern: {pattern_list}\n'
             f'File found: {match_list}'
         )
-    
+
     return match_list[0]
 
 
@@ -326,10 +312,11 @@ def get_barcode_from_matrix_dir(matrix_dir):
         match_barcode: list
         no_match_barcode: int
     """
-    barcode_file_pattern_list = []
-    for barcode_file_name in BARCODE_FILE_NAME:
-        barcode_file_pattern_list.append(f"{matrix_dir}/{barcode_file_name}")
-  
+    barcode_file_pattern_list = [
+        f"{matrix_dir}/{barcode_file_name}"
+        for barcode_file_name in BARCODE_FILE_NAME
+    ]
+
     match_barcode_file = glob_file(barcode_file_pattern_list)
     get_barcode_from_matrix_dir.logger.info(f"Barcode file:{match_barcode_file}")
     match_barcode, n_match_barcode = read_one_col(match_barcode_file)
@@ -343,10 +330,11 @@ def get_matrix_dir_from_match_dir(match_dir):
     Returns:
         matrix_dir: PosixPath object
     """
-    matrix_dir_pattern_list = []
-    for matrix_dir_suffix in FILTERED_MATRIX_DIR_SUFFIX:
-        matrix_dir_pattern_list.append(f"{match_dir}/*count/*{matrix_dir_suffix}")
-  
+    matrix_dir_pattern_list = [
+        f"{match_dir}/*count/*{matrix_dir_suffix}"
+        for matrix_dir_suffix in FILTERED_MATRIX_DIR_SUFFIX
+    ]
+
     matrix_dir = glob_file(matrix_dir_pattern_list)
     get_matrix_dir_from_match_dir.logger.info(f"Matrix_dir :{matrix_dir}")
 
@@ -378,8 +366,7 @@ def parse_match_dir(match_dir):
         'markers': [f'{match_dir}/*analysis*/*markers.tsv'],
     }
 
-    for file_key in pattern_dict:
-        file_pattern= pattern_dict[file_key]
+    for file_key, file_pattern in pattern_dict.items():
         try:
             match_file = glob_file(file_pattern)
         except FileNotFoundError:
@@ -409,8 +396,7 @@ def fastq_line(name, seq, qual):
 
 
 def find_assay_init(assay):
-    init_module = importlib.import_module(f"celescope.{assay}.__init__")
-    return init_module
+    return importlib.import_module(f"celescope.{assay}.__init__")
 
 
 def find_step_module(assay, step):
@@ -536,12 +522,13 @@ class Samtools():
 
         with pysam.AlignmentFile(self.in_bam, "rb") as original_bam:
             header = original_bam.header.to_dict()
-            header['RG'] = []
-            for index, barcode in enumerate(barcodes):
-                header['RG'].append({
+            header['RG'] = [
+                {
                     'ID': barcode,
                     'SM': index + 1,
-                })
+                }
+                for index, barcode in enumerate(barcodes)
+            ]
 
             with pysam.AlignmentFile(self.temp_sam_file, "w", header=header) as temp_sam:
                 for read in original_bam:
@@ -583,10 +570,7 @@ def check_arg_not_none(args, arg_name):
         bool
     """
     arg_value = getattr(args, arg_name, None)
-    if arg_value and arg_value.strip() != 'None':
-        return True
-    else:
-        return False
+    return bool(arg_value and arg_value.strip() != 'None')
 
 
 def parse_vcf_to_df(vcf_file, cols=('chrom', 'pos', 'alleles'), infos=('VID', 'CID')):

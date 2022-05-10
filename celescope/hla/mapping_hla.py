@@ -73,11 +73,7 @@ def split_bam(out_bam, barcodes, outdir, sample):
                 count_dict[barcode][umi] = 1
 
     split_bam.logger.info('writing cell bam...')
-    # write new bam
-    index = 0
-    for barcode in barcodes:
-        # init
-        index += 1
+    for index, barcode in enumerate(barcodes, start=1):
         index_dict[index]['barcode'] = barcode
         index_dict[index]['valid'] = False
 
@@ -130,8 +126,7 @@ def sub_typing(bam):
 
 def read_index(index_file):
     df_index = pd.read_csv(index_file, sep='\t', index_col=0, dtype=object)
-    df_valid = df_index[df_index['valid'] == 'True']
-    return df_valid
+    return df_index[df_index['valid'] == 'True']
 
 
 @add_log
@@ -142,8 +137,7 @@ def hla_typing(index_file, outdir, thread):
     bams = [
         f'{outdir}/cells/cell{index}/cell{index}.bam' for index in df_valid.index]
     with ProcessPoolExecutor(thread) as pool:
-        for res in pool.map(sub_typing, bams):
-            all_res.append(res)
+        all_res.extend(iter(pool.map(sub_typing, bams)))
 
 
 @add_log
@@ -161,10 +155,7 @@ def summary(index_file, outdir, sample):
         n += 1
         sub_df['barcode'] = df_valid.loc[index, :]['barcode']
         sub_df['cell_index'] = index
-        if n == 1:
-            all_df = sub_df
-        else:
-            all_df = all_df.append(sub_df, ignore_index=True)
+        all_df = sub_df if n == 1 else all_df.append(sub_df, ignore_index=True)
     all_df['Reads'] = all_df['Reads'].apply(int)
     all_df = all_df[all_df['Reads'] != 0]
     all_df = all_df.drop('Objective', axis=1)
@@ -186,7 +177,7 @@ def mapping_hla(args):
 
     # check dir
     if not os.path.exists(outdir):
-        os.system('mkdir -p %s' % (outdir))
+        os.system(f'mkdir -p {outdir}')
 
     # razer
     out_bam = razer(fq, outdir, sample, thread)

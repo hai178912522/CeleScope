@@ -37,9 +37,7 @@ class Count_vdj(Step):
         self.chains = CHAINS[args.type]
         self.cols = []
         for chain in self.chains:
-            for seq in SEQUENCES_HEADER:
-                self.cols.append("_".join([seq, chain]))
-
+            self.cols.extend("_".join([seq, chain]) for seq in SEQUENCES_HEADER)
         self.match_bool = False
         if utils.check_arg_not_none(self.args, 'match_dir'):
             self.match_cell_barcodes, _match_cell_number = utils.get_barcode_from_match_dir(args.match_dir)
@@ -154,8 +152,7 @@ class Count_vdj(Step):
         if self.args.type == "TCR":
 
             UMI_col_dic = {"TRA": "UMI_TRA", "TRB": "UMI_TRB"}
-            for chain in UMI_col_dic:
-                UMI_col_name = UMI_col_dic[chain]
+            for chain, UMI_col_name in UMI_col_dic.items():
                 if UMI_col_name in df_valid_count.columns:
                     df_valid_count[UMI_col_name].replace(
                         "NA", 0, inplace=True)
@@ -208,13 +205,11 @@ class Count_vdj(Step):
 When calculating the percentage, the denominator is `Cell with Barcode Match`"
                 )
 
-        # BCR
         elif self.args.type == "BCR":
 
             UMI_col_dic = {"IGH": "UMI_IGH",
                            "IGL": "UMI_IGL", "IGK": "UMI_IGK"}
-            for chain in UMI_col_dic:
-                UMI_col_name = UMI_col_dic[chain]
+            for chain, UMI_col_name in UMI_col_dic.items():
                 if UMI_col_name in df_valid_count.columns:
                     df_valid_count[UMI_col_name].replace(
                         "NA", 0, inplace=True)
@@ -322,13 +317,11 @@ When calculating the percentage, the denominator is `Cell with Barcode Match`"
         # cloneytpes table
         def format_table(df_clonetypes):
             df_table = df_clonetypes.copy()
-            df_table["percent"] = df_table["percent"].apply(
-                lambda x: str(x) + "%")
+            df_table["percent"] = df_table["percent"].apply(lambda x: f"{str(x)}%")
             seqs = ["aaSeqCDR3"]
             cols = []
             for chain in self.chains:
-                for seq in seqs:
-                    cols.append("_".join([seq, chain]))
+                cols.extend("_".join([seq, chain]) for seq in seqs)
             df_table_cols = ["clonetype_ID"] + \
                 cols + ["barcode_count", "percent"]
             df_table = df_table[df_table_cols]

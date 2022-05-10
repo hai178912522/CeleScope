@@ -10,10 +10,7 @@ from celescope.tools.step import s_common
 
 
 def genDict(dim=3):
-    if dim == 1:
-        return defaultdict(int)
-    else:
-        return defaultdict(lambda: genDict(dim - 1))
+    return defaultdict(int) if dim == 1 else defaultdict(lambda: genDict(dim - 1))
 
 
 def sum_virus(validated_barcodes, virus_bam,
@@ -33,9 +30,12 @@ def sum_virus(validated_barcodes, virus_bam,
     rows = []
     for barcode in count_dic:
         for tag in count_dic[barcode]:
-            for umi in count_dic[barcode][tag]:
-                rows.append([barcode, tag, umi, count_dic[barcode][tag][umi]])
-    if len(rows) == 0:
+            rows.extend(
+                [barcode, tag, umi, count_dic[barcode][tag][umi]]
+                for umi in count_dic[barcode][tag]
+            )
+
+    if not rows:
         logging.warning("No cell virus UMI found!")
 
     df_read = df_read = pd.DataFrame(
@@ -56,7 +56,7 @@ def count_virus(args):
 
     # 检查和创建输出目录
     if not os.path.exists(args.outdir):
-        os.system('mkdir -p %s' % (args.outdir))
+        os.system(f'mkdir -p {args.outdir}')
 
     # read barcodes
     df_barcodes = pd.read_csv(args.barcode_file, header=None)

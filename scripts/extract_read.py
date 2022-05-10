@@ -41,8 +41,8 @@ class Extract_read():
                     read_num += 1
                     attr = read.name.strip("@").split("_")
                     barcode = attr[0]
-                    read_index = int(attr[2])
                     if barcode in self.barcodes:
+                        read_index = int(attr[2])
                         self.read_index.add(read_index)
                         fq2.write(str(read) + '\n')
 

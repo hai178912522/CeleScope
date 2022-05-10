@@ -45,17 +45,12 @@ def test_mutiple(assays, test_dir):
     >>> pytest -s celescope/tests/test_multi.py --test_dir {some_dir} --assays tag,fusion
     """
 
-    if not assays:
-        assays = ASSAYS
-    else:
-        assays = assays.split(',')
+    assays = assays.split(',') if assays else ASSAYS
     print("assays to run: ", assays)
     thread = len(assays)
     executor = futures.ProcessPoolExecutor(max_workers=thread)
     results = executor.map(run_single, assays, [test_dir] * len(assays))
-    res_list = []
-    for result in results:
-        res_list.append(result)
+    res_list = list(results)
     for result in res_list:
         print(result)
-    assert not any((string.find("failed") != -1 for string in res_list))
+    assert all(string.find("failed") == -1 for string in res_list)

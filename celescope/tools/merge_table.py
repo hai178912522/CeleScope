@@ -17,8 +17,7 @@ def append_sample_data(sample, sample_data_dict, all_data_dict, steps):
     for step in steps:
         title = step + '_summary'
         if title in sample_data_dict:
-            metric_list = sample_data_dict[title]['metric_list']
-            if metric_list:
+            if metric_list := sample_data_dict[title]['metric_list']:
                 metric_dict = {'sample': sample}
                 for metric in metric_list:
                     name = metric['name'].replace(' ', '_')

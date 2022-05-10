@@ -73,7 +73,7 @@ class Scanpy_wrapper(Step):
 
         if self.mt_gene_list:
             mito_genes, _ = utils.read_one_col(self.mt_gene_list)
-            self.adata.var[MITO_VAR] = self.adata.var_names.map(lambda x:True if x in mito_genes else False)
+            self.adata.var[MITO_VAR] = self.adata.var_names.map(lambda x: x in mito_genes)
             # if not astype(bool), it will be type object and raise an error
             # https://github.com/theislab/anndata/issues/504
             self.adata.var[MITO_VAR] = self.adata.var[MITO_VAR].astype(bool)

@@ -55,19 +55,16 @@ class Step:
 
         # set
         class_name = self.__class__.__name__
-        if not display_title:
-            self._display_title = class_name
-        else:
-            self._display_title = display_title
+        self._display_title = display_title or class_name
         self._step_name = class_name[0].lower() + class_name[1:]
         self.__slots = ['data', 'metrics']
         self._step_summary_name = f'{self._step_name}_summary'
 
         self.__metric_list = []
         self.__help_content = []
-        self._path_dict = {}
-        for slot in self.__slots:
-            self._path_dict[slot] = f'{self.outdir}/../.{slot}.json'
+        self._path_dict = {
+            slot: f'{self.outdir}/../.{slot}.json' for slot in self.__slots
+        }
 
         self.__content_dict = {}
         for slot, path in self._path_dict.items():
@@ -81,9 +78,10 @@ class Step:
 
         # jinja env
         self.env = Environment(
-            loader=FileSystemLoader(os.path.dirname(__file__) + '/../templates/'),
-            autoescape=select_autoescape(['html', 'xml'])
+            loader=FileSystemLoader(f'{os.path.dirname(__file__)}/../templates/'),
+            autoescape=select_autoescape(['html', 'xml']),
         )
+
 
         # out file
         self.__stat_file = f'{self.outdir}/stat.txt'
@@ -148,20 +146,21 @@ class Step:
             f.write(html)
 
     def _add_content_data(self):
-        step_summary = {}
-        step_summary['display_title'] = self._display_title
-        step_summary['metric_list'] = self.__metric_list
-        step_summary['help_content'] = self.__help_content
+        step_summary = {
+            'display_title': self._display_title,
+            'metric_list': self.__metric_list,
+            'help_content': self.__help_content,
+        }
+
         self.__content_dict['data'][self._step_summary_name].update(step_summary)
 
     def _add_content_metric(self):
-        metric_dict = dict()
+        metric_dict = {}
         for metric in self.__metric_list:
             name = metric['name']
             value = metric['value']
-            fraction = metric['fraction']
             metric_dict[name] = value
-            if fraction:
+            if fraction := metric['fraction']:
                 metric_dict[f'{name} Fraction'] = fraction
 
         self.__content_dict['metrics'][self._step_summary_name].update(metric_dict)
@@ -188,19 +187,19 @@ class Step:
     def get_slot_key(self, slot, step_name, key):
         '''read slot from json file
         '''
-        return self.__content_dict[slot][step_name + '_summary'][key]
+        return self.__content_dict[slot][f'{step_name}_summary'][key]
 
     def get_table_dict(self, title, table_id, df_table):
         """
         table_dict {title: '', table_id: '', df_table: pd.DataFrame}
         """
-        table_dict = {}
-        table_dict['title'] = title
-        table_dict['table'] = df_table.to_html(
-            escape=False,
-            index=False,
-            table_id=table_id,
-            justify="center")
+        table_dict = {
+            'title': title,
+            'table': df_table.to_html(
+                escape=False, index=False, table_id=table_id, justify="center"
+            ),
+        }
+
         table_dict['id'] = table_id
         return table_dict
 

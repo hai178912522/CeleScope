@@ -154,10 +154,7 @@ class Count(Step):
         # sort by value(UMI count) first, then key(UMI sequence)
         umi_arr = sorted(
             umi_dict.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
-        while True:
-            # break when only highest in umi_arr
-            if len(umi_arr) == 1:
-                break
+        while len(umi_arr) != 1:
             umi_low = umi_arr.pop()
             low_seq = umi_low[0]
             low_count = umi_low[1]
@@ -287,8 +284,7 @@ class Count(Step):
         df_sum.loc[:, 'mark'] = 'UB'
         df_sum.loc[df_sum.index.isin(cell_bc), 'mark'] = 'CB'
         df_sum.to_csv(self.marked_count_file, sep='\t')
-        CB_describe = df_sum.loc[df_sum['mark'] == 'CB', :].describe()
-        return CB_describe
+        return df_sum.loc[df_sum['mark'] == 'CB', :].describe()
 
     @utils.add_log
     def write_matrix_10X(self, df, matrix_dir):

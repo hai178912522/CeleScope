@@ -57,8 +57,7 @@ class FeatureCounts(Step):
 
                 for metrics_str in metrics_compiled:
                     compiled = metrics_compiled[metrics_str]
-                    match = compiled.search(line)
-                    if match:
+                    if match := compiled.search(line):
                         metrics_numbers[metrics_str] = int(match.group(1))
                         break
 
@@ -96,7 +95,7 @@ class FeatureCounts(Step):
             f'{self.args.input} '
         )
         if self.featureCounts_param:
-            cmd += (" " + self.featureCounts_param)
+            cmd += f" {self.featureCounts_param}"
         self.debug_subprocess_call(cmd)
 
     def run(self):

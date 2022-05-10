@@ -93,9 +93,7 @@ class Otsu():
         self._array2hist()
         self._threshold_otsu()
         self._make_plot()
-        return_threshold = math.ceil(self.log_base ** self.threshold)
-
-        return return_threshold
+        return math.ceil(self.log_base ** self.threshold)
 
 
 class Auto():
@@ -112,9 +110,7 @@ class Auto():
         n_cell_1_percentile = len(array) // 100
         sorted_counts = sorted(array, reverse=True)
         count_cell_1_percentile = sorted_counts[n_cell_1_percentile]
-        threshold = int(count_cell_1_percentile / 10)
-
-        return threshold
+        return int(count_cell_1_percentile / 10)
 
 
 class Threshold():

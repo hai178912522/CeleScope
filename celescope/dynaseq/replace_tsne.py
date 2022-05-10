@@ -56,18 +56,17 @@ class Replace_tsne(Step):
                 ii = i.strip().split()
                 cells[ii[0]] = ii[1]
 
-        outf = open(outfile, 'w')
-        outf.write("Cell\ttSNE_1\ttSNE_2\tCluster\tratio\n")
-        with open(tsnefile, 'r') as f:
-            f.readline()
-            for i in f:
-                ii = i.strip().split()
-                if ii[0] in cells:
-                    outl = '\t'.join(ii[0:4])+'\t'+cells[ii[0]]+'\n'
-                else:
-                    outl = '\t'.join(ii[0:4])+'\t0'+'\n'
-                outf.write(outl)
-        outf.close()
+        with open(outfile, 'w') as outf:
+            outf.write("Cell\ttSNE_1\ttSNE_2\tCluster\tratio\n")
+            with open(tsnefile, 'r') as f:
+                f.readline()
+                for i in f:
+                    ii = i.strip().split()
+                    if ii[0] in cells:
+                        outl = '\t'.join(ii[:4]) + '\t' + cells[ii[0]] + '\n'
+                    else:
+                        outl = '\t'.join(ii[:4]) + '\t0' + '\n'
+                    outf.write(outl)
 
     @utils.add_log
     def tsne_plot(self, txt):
@@ -85,38 +84,32 @@ class Replace_tsne(Step):
         fig.update_xaxes(showgrid=False, linecolor='black', showline=True, ticks='outside', title_text='t-SNE1')
         fig.update_yaxes(showgrid=False, linecolor='black', showline=True, ticks='outside', title_text='t-SNE2')
 
-        div = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
-
-        return div
+        return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
 
     def tsne_table(self, txt):
-        marker_gene_table = txt.to_html(
+        return txt.to_html(
             escape=False,
             index=False,
             table_id='replacement_table_cluster',
-            justify="center")
-
-        return marker_gene_table
+            justify="center",
+        )
 
     def file_stat(self, infile, clu):
         clus = list(set(clu.values()))
-        cluster = {}
-        for c in clus:
-            cluster[c] = {}
-        fn = open(infile, "r")
-        fnh = fn.readline().strip().split()
-        fnh.insert(0, '')
-        for i in fn:
-            ii = i.strip().split()
-            for j in range(1, len(ii)):
-                if ii[j] == 'NA':
-                    continue
-                if fnh[j] not in clu:
-                    continue
-                if ii[0] not in cluster[clu[fnh[j]]]:
-                    cluster[clu[fnh[j]]][ii[0]] = []
-                cluster[clu[fnh[j]]][ii[0]].append(float(ii[j]))
-        fn.close()
+        cluster = {c: {} for c in clus}
+        with open(infile, "r") as fn:
+            fnh = fn.readline().strip().split()
+            fnh.insert(0, '')
+            for i in fn:
+                ii = i.strip().split()
+                for j in range(1, len(ii)):
+                    if ii[j] == 'NA':
+                        continue
+                    if fnh[j] not in clu:
+                        continue
+                    if ii[0] not in cluster[clu[fnh[j]]]:
+                        cluster[clu[fnh[j]]][ii[0]] = []
+                    cluster[clu[fnh[j]]][ii[0]].append(float(ii[j]))
         return cluster
 
     def tsne_file(self, infile):
@@ -133,23 +126,22 @@ class Replace_tsne(Step):
         tsne = self.tsne_file(tsnefile)
         cluster = self.file_stat(matrix, tsne)
 
-        w = open(outfile, 'w')
-        w.write("cluster\tgene\tTurn-over_rate\tcells\n")
-        for c in cluster:
-            tmp = {}
-            for g in cluster[c]:
-                gt = sum(cluster[c][g]) / len(cluster[c][g])
-                tmp[g] = gt
-            sorttmp = sorted(tmp.items(), key=lambda item: item[1], reverse=True)
-            tmpn = 0
-            for x in sorttmp:
-                if len(cluster[c][x[0]]) < mincell:
-                    continue
-                tmpn += 1
-                if tmpn > topgene:
-                    break
-                w.write('cluster'+c+'\t'+x[0]+'\t'+str(x[1])+'\t'+str(len(cluster[c][x[0]]))+'\n')
-        w.close()
+        with open(outfile, 'w') as w:
+            w.write("cluster\tgene\tTurn-over_rate\tcells\n")
+            for c in cluster:
+                tmp = {}
+                for g in cluster[c]:
+                    gt = sum(cluster[c][g]) / len(cluster[c][g])
+                    tmp[g] = gt
+                sorttmp = sorted(tmp.items(), key=lambda item: item[1], reverse=True)
+                tmpn = 0
+                for x in sorttmp:
+                    if len(cluster[c][x[0]]) < mincell:
+                        continue
+                    tmpn += 1
+                    if tmpn > topgene:
+                        break
+                    w.write('cluster'+c+'\t'+x[0]+'\t'+str(x[1])+'\t'+str(len(cluster[c][x[0]]))+'\n')
 
     def report_prepare(self, outdiv, outable):
         self.add_data(replace_tsne=outdiv)

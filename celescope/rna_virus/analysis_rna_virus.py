@@ -38,8 +38,7 @@ class Analysis_rna_virus(Step):
         tSNE_1 = list(df.tSNE_1)
         tSNE_2 = list(df.tSNE_2)
         virus_UMI = list(df.UMI)
-        res = {"tSNE_1": tSNE_1, "tSNE_2": tSNE_2, "virus_UMI": virus_UMI}
-        return res
+        return {"tSNE_1": tSNE_1, "tSNE_2": tSNE_2, "virus_UMI": virus_UMI}
 
 
 @utils.add_log

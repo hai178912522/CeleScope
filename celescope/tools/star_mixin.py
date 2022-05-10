@@ -27,14 +27,11 @@ class Star_mixin(Step):
 
         # parse
         self.genome = Mkref.parse_genomeDir(self.genomeDir)
-        self.stat_prefix = 'Reads'
-        if self.consensus_fq:
-            self.stat_prefix = 'UMIs'
-
+        self.stat_prefix = 'UMIs' if self.consensus_fq else 'Reads'
         # out
         self.outPrefix = f'{self.outdir}/{self.sample}_'
         if add_prefix:
-            self.outPrefix += add_prefix + '_'
+            self.outPrefix += f'{add_prefix}_'
         self.STAR_map_log = f'{self.outPrefix}Log.final.out'
         self.unsort_STAR_bam = f'{self.outPrefix}Aligned.out.bam'
         self.STAR_bam = f'{self.outPrefix}Aligned.sortedByCoord.out.bam'
@@ -57,7 +54,7 @@ class Star_mixin(Step):
             cmd += ['--readFilesCommand', 'zcat']
         cmd = ' '.join(cmd)
         if self.STAR_param:
-            cmd += (" " + self.STAR_param)
+            cmd += f" {self.STAR_param}"
         self.STAR.logger.info(cmd)
         subprocess.check_call(cmd, shell=True)
 
