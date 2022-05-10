@@ -127,11 +127,13 @@ class Mapping(Step):
 
                 # check linker
                 if self.linker_length != 0:
-                    valid_linker = False
-                    for linker_name in self.linker_dict:
-                        if utils.hamming_correct(self.linker_dict[linker_name], seq_linker):
-                            valid_linker = True
-                            break
+                    valid_linker = any(
+                        utils.hamming_correct(
+                            self.linker_dict[linker_name], seq_linker
+                        )
+                        for linker_name in self.linker_dict
+                    )
+
                 else:
                     valid_linker = True
 

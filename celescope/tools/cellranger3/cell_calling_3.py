@@ -134,7 +134,7 @@ def find_nonambient_barcodes(raw_mat, recovered_cells,
             # and the smoothed prob profile per "Gene" (ambient_profile_p)
             eval_features, ambient_profile_p = est_background_profile_sgt(raw_mat.tocsc(), use_bcs)
         except cr_sgt.SimpleGoodTuringError as e:
-            print(str(e))
+            print(e)
     else:
         eval_features = np.zeros(0, dtype=int)
         ambient_profile_p = np.zeros(0)
@@ -164,8 +164,8 @@ def find_nonambient_barcodes(raw_mat, recovered_cells,
 
     min_umis = int(max(min_umis_nonambient, round(np.ceil(median_initial_umis * min_umi_frac_of_median))))
 
-    print('Median UMIs of initial cell calls: {}'.format(median_initial_umis))
-    print('Min UMIs: {}'.format(min_umis))
+    print(f'Median UMIs of initial cell calls: {median_initial_umis}')
+    print(f'Min UMIs: {min_umis}')
 
     eval_bcs[umis_per_bc < min_umis] = ma.masked
     n_unmasked_bcs = len(eval_bcs) - eval_bcs.mask.sum()
@@ -180,8 +180,11 @@ def find_nonambient_barcodes(raw_mat, recovered_cells,
         return orig_cells, gg_filtered_metrics, None
     else:
         assert not np.any(np.isin(eval_bcs, orig_cells))
-        print('Number of candidate bcs: {}'.format(len(eval_bcs)))
-        print('Range candidate bc umis: {}, {}'.format(umis_per_bc[eval_bcs].min(), umis_per_bc[eval_bcs].max()))
+        print(f'Number of candidate bcs: {len(eval_bcs)}')
+        print(
+            f'Range candidate bc umis: {umis_per_bc[eval_bcs].min()}, {umis_per_bc[eval_bcs].max()}'
+        )
+
 
         eval_mat = raw_mat.tocsc()[eval_features, :][:, eval_bcs]
 
@@ -207,7 +210,10 @@ def find_nonambient_barcodes(raw_mat, recovered_cells,
         print('Number of non-ambient barcodes from SGT:', len(eval_bcs[is_nonambient]))
 
         # Runxi's filtering
-        print('Identify {} cell-associated barcodes'.format(len(orig_cells)+len(eval_bcs[is_nonambient])))
+        print(
+            f'Identify {len(orig_cells) + len(eval_bcs[is_nonambient])} cell-associated barcodes'
+        )
+
 
         # of barcodes overlapped w/ the cellranger results
         filtered_bc_indices = np.concatenate((orig_cells, eval_bcs[is_nonambient]), axis=None)

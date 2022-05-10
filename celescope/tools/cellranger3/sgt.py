@@ -20,10 +20,7 @@ class SimpleGoodTuringError(Exception):
 
 def _averaging_transform(r, nr):
     d = np.concatenate((np.ones(1, dtype=int), np.diff(r)))
-    dr = np.concatenate((
-        0.5 * (d[1:] + d[0:-1]),
-        np.array((d[-1],), dtype=float),
-    ))
+    dr = np.concatenate((0.5 * (d[1:] + d[:-1]), np.array((d[-1],), dtype=float)))
     return nr.astype(float)/dr
 
 
@@ -74,12 +71,11 @@ def simple_good_turing(xr, xnr):
     for r in range(len(xr)):
         if not useturing:
             xrstcmbrel[r] = xrstrel[r]
+        elif np.abs(xrstrel[r]-xrstarel[r]) * (1+r)/tursd[r] > 1.65:
+            xrstcmbrel[r] = xrstarel[r]
         else:
-            if np.abs(xrstrel[r]-xrstarel[r]) * (1+r)/tursd[r] > 1.65:
-                xrstcmbrel[r] = xrstarel[r]
-            else:
-                useturing = False
-                xrstcmbrel[r] = xrstrel[r]
+            useturing = False
+            xrstcmbrel[r] = xrstrel[r]
 
     # Renormalize the probabilities for observed objects
     sumpraw = np.sum(xrstcmbrel * xr * xnr / xN)

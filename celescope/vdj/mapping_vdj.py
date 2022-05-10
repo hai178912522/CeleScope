@@ -31,10 +31,7 @@ class Mapping_vdj(Step):
     def __init__(self, args, display_title=None):
         Step.__init__(self, args, display_title=display_title)
 
-        # set
-        self.read_type = "UMIs"
-        if args.not_consensus:
-            self.read_type = 'Reads'
+        self.read_type = 'Reads' if args.not_consensus else "UMIs"
         self.chains = CHAINS[args.type]
 
         # out files
@@ -175,15 +172,13 @@ class Mapping_vdj(Step):
     def fastq_to_dataframe(self):
         # read input_file
         with pysam.FastxFile(self.args.fq) as fh:
-            index = 0
             read_row_list = []
-            for entry in fh:
+            for index, entry in enumerate(fh):
                 attr = entry.name.split("_")
                 barcode = attr[0]
                 umi = attr[1]
                 dic = {"readId": index, "barcode": barcode, "UMI": umi}
                 read_row_list.append(dic)
-                index += 1
             df_fastq = pd.DataFrame(read_row_list, columns=["readId", "barcode", "UMI"])
         return df_fastq
 
@@ -191,8 +186,7 @@ class Mapping_vdj(Step):
         alignments = pd.read_csv(self.alignments, sep="\t")
         alignments.readId = alignments.readId.astype(int)
         df_fastq.readId = df_fastq.readId.astype(int)
-        df_align = pd.merge(df_fastq, alignments, on="readId", how="right")
-        return df_align
+        return pd.merge(df_fastq, alignments, on="readId", how="right")
 
     def run(self):
         self.run_mixcr()

@@ -152,11 +152,13 @@ class Star(Star_mixin):
             '-Xmx20G',
             '-XX:ParallelGCThreads=4',
             'CollectRnaSeqMetrics',
-            'I=%s' % (self.STAR_bam),
-            'O=%s' % (self.picard_region_log),
-            'REF_FLAT=%s' % (self.refflat),
+            f'I={self.STAR_bam}',
+            f'O={self.picard_region_log}',
+            f'REF_FLAT={self.refflat}',
             'STRAND=NONE',
-            'VALIDATION_STRINGENCY=SILENT']
+            'VALIDATION_STRINGENCY=SILENT',
+        ]
+
         cmd = ' '.join(cmd)
         self.debug_subprocess_call(cmd)
 

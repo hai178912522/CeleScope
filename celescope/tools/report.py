@@ -36,10 +36,8 @@ class reporter:
         if not os.path.exists(json_file):
             data = {}
         else:
-            fh = open(json_file)
-            data = json.load(fh)
-            fh.close()
-
+            with open(json_file) as fh:
+                data = json.load(fh)
         if self.stat_file:
             df = pd.read_table(self.stat_file, header=None, sep=':', dtype=str)
             data[self.name + '_summary'] = df.values.tolist()

@@ -74,7 +74,7 @@ def qual_int(char, offset=33):
 
 def low_qual(quals, minQ, num):
     # print(ord('/')-33)           14
-    return True if len([q for q in quals if qual_int(q) < minQ]) > num else False
+    return len([q for q in quals if qual_int(q) < minQ]) > num
 
 
 def check_seq(seq_file, pattern_dict, seq_abbr):
@@ -109,8 +109,7 @@ def findall_mismatch(seq, n_mismatch=1, bases='ACGTN'):
     """
     seq_set = set()
     seq_len = len(seq)
-    if n_mismatch > seq_len:
-        n_mismatch = seq_len
+    n_mismatch = min(n_mismatch, seq_len)
     for locs in combinations(range(seq_len), n_mismatch):
         seq_locs = [[base] for base in seq]
         for loc in locs:
@@ -162,15 +161,14 @@ def check_seq_mismatch(seq_list, correct_set_list, mismatch_dict_list):
     bool_corrected = False
     corrected_seq = ''
     for index, seq in enumerate(seq_list):
-        if seq not in correct_set_list[index]:
-            if seq not in mismatch_dict_list[index]:
-                bool_valid = False
-                return bool_valid, bool_corrected, corrected_seq
-            else:
-                bool_corrected = True
-                corrected_seq += mismatch_dict_list[index][seq]
-        else:
+        if seq in correct_set_list[index]:
             corrected_seq += seq
+        elif seq in mismatch_dict_list[index]:
+            bool_corrected = True
+            corrected_seq += mismatch_dict_list[index][seq]
+        else:
+            bool_valid = False
+            return bool_valid, bool_corrected, corrected_seq
     return bool_valid, bool_corrected, corrected_seq
 
 
@@ -232,7 +230,10 @@ class Chemistry():
             chemistry = self.get_chemistry(fastq1)
             chemistry_list.append(chemistry)
         if len(set(chemistry_list)) != 1:
-            Chemistry.check_chemistry.logger.warning('multiple chemistry found!' + str(chemistry_list))
+            Chemistry.check_chemistry.logger.warning(
+                f'multiple chemistry found!{chemistry_list}'
+            )
+
         return chemistry_list
 
     def seq_chemistry(self, seq):
@@ -262,11 +263,7 @@ class Chemistry():
         bool_valid, _, _ = check_seq_mismatch(
             [linker_v2], self.linker_1_v2_set_list, self.linker_1_v2_mismatch_list)
         if bool_valid:
-            if seq[65:69] == "TTTT":
-                return "scopeV2.0.1"
-            else:
-                return "scopeV2.1.1"
-
+            return "scopeV2.0.1" if seq[65:69] == "TTTT" else "scopeV2.1.1"
         bool_valid, _, _ = check_seq_mismatch(
             [linker_v2], self.linker_4_v2_set_list, self.linker_4_v2_mismatch_list)
         if bool_valid:
@@ -365,10 +362,7 @@ class Barcode(Step):
         self.output_R1 = args.output_R1
 
         # out file
-        if args.gzip:
-            suffix = ".gz"
-        else:
-            suffix = ""
+        suffix = ".gz" if args.gzip else ""
         self.out_fq2 = f'{self.out_prefix}_2.fq{suffix}'
         self.out_fq1 = f'{self.out_prefix}_1.fq{suffix}'
         if self.nopolyT:
@@ -430,10 +424,10 @@ class Barcode(Step):
 
             pattern_dict = parse_pattern(bc_pattern)
 
-            bool_T = True if 'T' in pattern_dict else False
-            bool_L = True if 'L' in pattern_dict else False
+            bool_T = 'T' in pattern_dict
+            bool_L = 'L' in pattern_dict
             bool_whitelist = (whitelist_file is not None) and whitelist_file != "None"
-            C_len = sum([item[1] - item[0] for item in pattern_dict['C']])
+            C_len = sum(item[1] - item[0] for item in pattern_dict['C'])
 
             if bool_whitelist:
                 barcode_set_list, barcode_mismatch_list = parse_whitelist_file(whitelist_file,
@@ -508,8 +502,8 @@ class Barcode(Step):
                     out_fq2.write(f'@{cb}_{umi}_{self.total_num}\n{seq2}\n+\n{qual2}\n')
                     if self.output_R1:
                         out_fq1.write(f'@{cb}_{umi}_{self.total_num}\n{seq1}\n+\n{qual1}\n')
-                        
-            self.run.logger.info(self.fq1_list[i] + ' finished.')
+
+            self.run.logger.info(f'{self.fq1_list[i]} finished.')
         out_fq2.close()
 
         # logging
@@ -530,12 +524,26 @@ class Barcode(Step):
                 'no valid reads found! please check the --chemistry parameter.')
 
         # stat
-        BarcodesQ30 = sum([self.barcode_qual_Counter[k] for k in self.barcode_qual_Counter if k >= ord2chr(
-            30)]) / float(sum(self.barcode_qual_Counter.values())) * 100
+        BarcodesQ30 = (
+            sum(
+                self.barcode_qual_Counter[k]
+                for k in self.barcode_qual_Counter
+                if k >= ord2chr(30)
+            )
+            / float(sum(self.barcode_qual_Counter.values()))
+        ) * 100
+
         BarcodesQ30 = round(BarcodesQ30, 2)
         BarcodesQ30_display = f'{BarcodesQ30}%'
-        UMIsQ30 = sum([self.umi_qual_Counter[k] for k in self.umi_qual_Counter if k >= ord2chr(
-            30)]) / float(sum(self.umi_qual_Counter.values())) * 100
+        UMIsQ30 = (
+            sum(
+                self.umi_qual_Counter[k]
+                for k in self.umi_qual_Counter
+                if k >= ord2chr(30)
+            )
+            / float(sum(self.umi_qual_Counter.values()))
+        ) * 100
+
         UMIsQ30 = round(UMIsQ30, 2)
         UMIsQ30_display = f'{UMIsQ30}%'
 

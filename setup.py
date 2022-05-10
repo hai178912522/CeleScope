@@ -8,8 +8,11 @@ with open('requirements.txt') as fp:
     install_requires = fp.read()
 
 entrys = ['celescope=celescope.celescope:main',]
-for assay in ASSAY_LIST:
-    entrys.append(f'multi_{assay}=celescope.{assay}.multi_{assay}:main')
+entrys.extend(
+    f'multi_{assay}=celescope.{assay}.multi_{assay}:main'
+    for assay in ASSAY_LIST
+)
+
 entry_dict = {
         'console_scripts': entrys,
 }

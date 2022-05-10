@@ -164,10 +164,13 @@ def summarize_bootstrapped_top_n(top_n_boot):
     top_n_bcs_mean = np.mean(top_n_boot)
     top_n_bcs_sd = np.std(top_n_boot)
     top_n_bcs_var = np.var(top_n_boot)
-    result = {}
-    result['filtered_bcs_var'] = top_n_bcs_var
-#     result['filtered_bcs_cv'] = tk_stats.robust_divide(top_n_bcs_sd, top_n_bcs_mean)
-    result['filtered_bcs_lb'] = round(sp_stats.norm.ppf(0.025, top_n_bcs_mean, top_n_bcs_sd))
+    result = {
+        'filtered_bcs_var': top_n_bcs_var,
+        'filtered_bcs_lb': round(
+            sp_stats.norm.ppf(0.025, top_n_bcs_mean, top_n_bcs_sd)
+        ),
+    }
+
     result['filtered_bcs_ub'] = round(sp_stats.norm.ppf(0.975, top_n_bcs_mean, top_n_bcs_sd))
     result['filtered_bcs'] = int(round(top_n_bcs_mean))
     return result
@@ -200,18 +203,22 @@ def filter_cellular_barcodes_ordmag(bc_counts, recovered_cells):
     if len(nonzero_bc_counts) == 0:
         msg = "WARNING: All barcodes do not have enough reads for ordmag, allowing no bcs through"
         return [], metrics, msg
-
 #     baseline_bc_idx = int(round(float(recovered_cells) * (1 - cr_constants.ORDMAG_RECOVERED_CELLS_QUANTILE))) # Quantile=0.99
     baseline_bc_idx = int(round(float(recovered_cells) * (1 - 0.99)))  # Quantile=0.99
     baseline_bc_idx = min(baseline_bc_idx, len(nonzero_bc_counts) - 1)
     assert baseline_bc_idx < max_filtered_bcs
 
     # Bootstrap sampling; run algo with many random samples of the data
-    top_n_boot = np.array([
-        find_within_ordmag(np.random.choice(nonzero_bc_counts, len(nonzero_bc_counts)), baseline_bc_idx)
-        for i in range(100)  # 100
-        #         for i in range(cr_constants.ORDMAG_NUM_BOOTSTRAP_SAMPLES) # 100
-    ])
+    top_n_boot = np.array(
+        [
+            find_within_ordmag(
+                np.random.choice(nonzero_bc_counts, len(nonzero_bc_counts)),
+                baseline_bc_idx,
+            )
+            for _ in range(100)
+        ]
+    )
+
 
     metrics.update(summarize_bootstrapped_top_n(top_n_boot))
 
@@ -327,7 +334,7 @@ def est_background_profile_bottom(matrix, bottom_frac):
 
     cum_frac = np.cumsum(umis_per_bc[barcode_order]) / float(umis_per_bc.sum())
     max_bg_idx = np.searchsorted(cum_frac, bottom_frac, side='left')
-    bg_mat = matrix[:, barcode_order[0:max_bg_idx]]
+    bg_mat = matrix[:, barcode_order[:max_bg_idx]]
 
     nz_feat = np.flatnonzero(np.asarray(bg_mat.sum(1)))
     bg_profile = np.ravel(bg_mat[nz_feat, :].sum(axis=1))

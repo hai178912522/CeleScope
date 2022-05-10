@@ -164,11 +164,13 @@ class Mapping_tag(Step):
 
                 # check linker
                 if self.linker_length != 0:
-                    valid_linker = False
-                    for linker_name in self.linker_dict:
-                        if utils.hamming_correct(self.linker_dict[linker_name], seq_linker):
-                            valid_linker = True
-                            break
+                    valid_linker = any(
+                        utils.hamming_correct(
+                            self.linker_dict[linker_name], seq_linker
+                        )
+                        for linker_name in self.linker_dict
+                    )
+
                 else:
                     valid_linker = True
 
@@ -195,9 +197,11 @@ class Mapping_tag(Step):
         rows = []
         for barcode in self.res_dic:
             for tag_name in self.res_dic[barcode]:
-                for umi in self.res_dic[barcode][tag_name]:
-                    rows.append([barcode, tag_name, umi,
-                                 self.res_dic[barcode][tag_name][umi]])
+                rows.extend(
+                    [barcode, tag_name, umi, self.res_dic[barcode][tag_name][umi]]
+                    for umi in self.res_dic[barcode][tag_name]
+                )
+
         df_read_count = pd.DataFrame(rows)
         df_read_count.rename(
             columns={

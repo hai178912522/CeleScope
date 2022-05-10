@@ -61,8 +61,11 @@ class Count_bam(Step):
         read_count_list = []
         for barcode in self.count_dict:
             for ref in self.count_dict[barcode]:
-                for umi in self.count_dict[barcode][ref]:
-                    read_count_list.append(self.count_dict[barcode][ref][umi])
+                read_count_list.extend(
+                    self.count_dict[barcode][ref][umi]
+                    for umi in self.count_dict[barcode][ref]
+                )
+
         mean_read_count_per_umi = round(float(np.mean(read_count_list)), 2)
         self.add_metric(
             name='Mead Read Count per UMI',

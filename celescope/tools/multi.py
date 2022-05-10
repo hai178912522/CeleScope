@@ -132,10 +132,7 @@ use `--steps_run barcode,cutadapt`
                     continue
                 line_split = line.split()
                 library_id, library_path, sample_name = line_split[:3]
-                if len(line_split) >= 4:
-                    col4 = line_split[3]
-                else:
-                    col4 = default_val
+                col4 = line_split[3] if len(line_split) >= 4 else default_val
                 fq1, fq2 = get_fq(library_id, library_path)
 
                 if sample_name in fq_dict:
@@ -157,12 +154,12 @@ use `--steps_run barcode,cutadapt`
 
     def link_data(self):
         raw_dir = f'{self.args.outdir}/data_give/rawdata'
-        os.system('mkdir -p %s' % (raw_dir))
-        with open(raw_dir + '/ln.sh', 'w') as fh:
+        os.system(f'mkdir -p {raw_dir}')
+        with open(f'{raw_dir}/ln.sh', 'w') as fh:
             fh.write('cd %s\n' % (raw_dir))
             for s, arr in self.fq_dict.items():
-                fh.write('ln -sf %s %s\n' % (arr[0], s + '_1.fq.gz'))
-                fh.write('ln -sf %s %s\n' % (arr[1], s + '_2.fq.gz'))
+                fh.write('ln -sf %s %s\n' % (arr[0], f'{s}_1.fq.gz'))
+                fh.write('ln -sf %s %s\n' % (arr[1], f'{s}_2.fq.gz'))
 
     def prepare(self):
         """
@@ -179,7 +176,7 @@ use `--steps_run barcode,cutadapt`
         self.sjm_dir = f'{self.args.outdir}/sjm/'
         self.sjm_file = f'{self.sjm_dir}/sjm.job'
 
-        self.logdir = self.args.outdir + '/log'
+        self.logdir = f'{self.args.outdir}/log'
         self.sjm_cmd = f'log_dir {self.logdir}\n'
 
         # parse_mapfile
@@ -191,15 +188,13 @@ use `--steps_run barcode,cutadapt`
 
         for sample in self.fq_dict:
             self.outdir_dic[sample] = {}
-            index = 0
-            for step in self.__STEPS__:
+            for index, step in enumerate(self.__STEPS__):
                 step_outdir = f"{self.args.outdir}/{sample}/{index:02d}.{step}"
                 self.outdir_dic[sample].update({step: step_outdir})
-                index += 1
 
     def generate_cmd(self, cmd, step, sample, m=1, x=1):
         if sample:
-            sample = "_" + sample
+            sample = f"_{sample}"
         sched_options = f'sched_options -w n -cwd -V -l vf={m}g,p={x}'
         if self.args.queue:
             sched_options += f' -q {self.args.queue} '
@@ -223,8 +218,7 @@ job_end
         func_opts = getattr(step_module, f"get_opts_{step}")
         step_parser = argparse.ArgumentParser(step_module)
         func_opts(step_parser, sub_program=False)
-        args = step_parser.parse_known_args()
-        return args
+        return step_parser.parse_known_args()
 
     def get_cmd_line(self, step, sample):
         """ get cmd line without input
@@ -246,14 +240,14 @@ job_end
                 continue
             if args_dict[arg] is True:
                 cmd_line += f'--{arg} '
-            else:
-                if args_dict[arg]:
-                    matches = [' ', '-']
-                    arg_string = str(args_dict[arg])
-                    if any(char in arg_string for char in matches):  # need quote
-                        cmd_line += f'--{arg} "{arg_string}" '
-                    else:
-                        cmd_line += f'--{arg} {arg_string} '
+            elif args_dict[arg]:
+                matches = [' ', '-']
+                arg_string = str(args_dict[arg])
+                cmd_line += (
+                    f'--{arg} "{arg_string}" '
+                    if any(char in arg_string for char in matches)
+                    else f'--{arg} {arg_string} '
+                )
 
         return cmd_line
 
@@ -338,8 +332,7 @@ job_end
             f'--fq {fq} '
         )
         self.process_cmd(cmd, step, sample, m=5, x=1)
-        outfile = f'{self.outdir_dic[sample][step]}/{sample}_consensus.fq'
-        return outfile
+        return f'{self.outdir_dic[sample][step]}/{sample}_consensus.fq'
 
     def run_steps(self):
         for sample in self.fq_dict:
@@ -351,15 +344,16 @@ job_end
                     method_to_call = getattr(self, step)
                 except AttributeError as attr_not_exist:
                     raise NotImplementedError(
-                        "Class `{}` does not implement `{}`".format(self.__class__.__name__, step)
+                        f"Class `{self.__class__.__name__}` does not implement `{step}`"
                     ) from attr_not_exist
+
                 method_to_call(sample)
 
     def merge_report(self):
         step = "merge_report"
         steps_str = ",".join(self.__STEPS__)
         samples = ','.join(self.fq_dict.keys())
-        app = TOOLS_DIR + '/merge_table.py'
+        app = f'{TOOLS_DIR}/merge_table.py'
         cmd = (
             f'python {app} --samples {samples} '
             f'--steps {steps_str} --outdir {self.args.outdir}'

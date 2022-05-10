@@ -117,14 +117,13 @@ class Count_tag(Step):
 
     @staticmethod
     def get_UMI_min(df_cell_UMI, UMI_min):
-        if UMI_min == "auto":
-            UMI_min1 = np.percentile(df_cell_UMI.sum(axis=1), 5)
-            UMI_min2 = np.median(df_cell_UMI.sum(axis=1)) / 10
-            UMI_min = int(min(UMI_min1, UMI_min2))
-            UMI_min = max(UMI_min, 1)
-            return UMI_min
-        else:
+        if UMI_min != "auto":
             return int(UMI_min)
+        UMI_min1 = np.percentile(df_cell_UMI.sum(axis=1), 5)
+        UMI_min2 = np.median(df_cell_UMI.sum(axis=1)) / 10
+        UMI_min = int(min(UMI_min1, UMI_min2))
+        UMI_min = max(UMI_min, 1)
+        return UMI_min
 
     @staticmethod
     def get_SNR(row, dim):
@@ -141,34 +140,29 @@ class Count_tag(Step):
     def get_SNR_min(self, df_cell_UMI, SNR_min, UMI_min):
         UMIs = df_cell_UMI.apply(Count_tag.get_UMI, axis=1)
         df_valid_cell_UMI = df_cell_UMI[UMIs >= UMI_min]
-        if SNR_min == "auto":
-            # no noise
-            if df_valid_cell_UMI.shape[1] <= self.dim:
-                Count_tag.get_SNR_min.logger.warning('*** No NOISE FOUND! ***')
-                self.no_noise = True
-                return 0
-            SNRs = df_valid_cell_UMI.apply(Count_tag.get_SNR, dim=self.dim, axis=1)
-            if np.median(SNRs) == np.inf:
-                return 10
-            return max(np.median(SNRs) * self.coefficient, 2)
-        else:
+        if SNR_min != "auto":
             return float(SNR_min)
+        # no noise
+        if df_valid_cell_UMI.shape[1] <= self.dim:
+            Count_tag.get_SNR_min.logger.warning('*** No NOISE FOUND! ***')
+            self.no_noise = True
+            return 0
+        SNRs = df_valid_cell_UMI.apply(Count_tag.get_SNR, dim=self.dim, axis=1)
+        if np.median(SNRs) == np.inf:
+            return 10
+        return max(np.median(SNRs) * self.coefficient, 2)
 
     @staticmethod
     def tag_type(row, UMI_min, SNR_min, dim, no_noise=False):
-        if no_noise:
-            SNR = 1
-        else:
-            SNR = Count_tag.get_SNR(row, dim)
+        SNR = 1 if no_noise else Count_tag.get_SNR(row, dim)
         UMI = Count_tag.get_UMI(row)
         if UMI < UMI_min:
             return "Undetermined"
         if SNR < SNR_min:
             return "Multiplet"
         # get tag
-        signal_tags = sorted(row.sort_values(ascending=False).index[0:dim])
-        signal_tags_str = "_".join(signal_tags)
-        return signal_tags_str
+        signal_tags = sorted(row.sort_values(ascending=False).index[:dim])
+        return "_".join(signal_tags)
 
     @utils.add_log
     def write_and_plot(self, df, column_name, count_file, plot_file):

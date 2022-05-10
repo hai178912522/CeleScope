@@ -28,4 +28,4 @@ class Tests(unittest.TestCase):
         print(obj.__content_dict['metric'])
 
     def test_test(self):
-        assert 0 == 0
+        pass

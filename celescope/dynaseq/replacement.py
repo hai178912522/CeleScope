@@ -95,23 +95,16 @@ class Replacement(Step):
                     continue
                 gene = read.get_tag('GN')
 
-                if read.get_tag('ST') == '+':
-                    stag = read.get_tag('TL')
-                else:
-                    stag = read.get_tag('AL')
+                stag = read.get_tag('TL') if read.get_tag('ST') == '+' else read.get_tag('AL')
                 if len(stag) == 1 and stag[0] == 0:
                     gene += '--T'
                 else:
                     fcount = 0
-                    for si in range(0, len(stag)):
+                    for si in range(len(stag)):
                         pos = chro + '_' + str(stag[si])
                         if pos in bg:
                             fcount += 1
-                    if fcount == len(stag):
-                        gene += '--T'
-                    else:
-                        gene += '--C'
-
+                    gene += '--T' if fcount == len(stag) else '--C'
                 readinfo = '\t'.join([gene, cb, ub])
                 if readinfo not in countdict:
                     countdict[readinfo] = 1
@@ -122,10 +115,9 @@ class Replacement(Step):
                 continue
         bamfile.close()
 
-        out1 = open(outfile, 'w')
-        for rid in countdict:
-            out1.write(rid+'\t'+str(countdict[rid])+'\n')
-        out1.close()
+        with open(outfile, 'w') as out1:
+            for rid, value in countdict.items():
+                out1.write(rid+'\t' + str(value) + '\n')
 
     @utils.add_log
     def background_snp(self, bgfile, cov=1):
@@ -169,52 +161,51 @@ class Replacement(Step):
 
     @utils.add_log
     def split_matrix(self, mat, outpre):
-        outnew = open(outpre+'.new_matrix.tsv', 'w')
-        outold = open(outpre+'.old_matrix.tsv', 'w')
-        con_mat = open(outpre+'.NvsO_matrix.tsv', 'w')
-        infile = open(mat, 'r')
+        with open(outpre+'.new_matrix.tsv', 'w') as outnew:
+            outold = open(outpre+'.old_matrix.tsv', 'w')
+            con_mat = open(outpre+'.NvsO_matrix.tsv', 'w')
+            infile = open(mat, 'r')
 
-        tmph = infile.readline().strip().split()
-        fill_na = ['0'] * len(tmph)
-        tmph.insert(0, '')
-        outnew.write('\t'.join(tmph)+'\n')
-        outold.write('\t'.join(tmph)+'\n')
-        con_mat.write('\t'.join(tmph)+'\n')
+            tmph = infile.readline().strip().split()
+            fill_na = ['0'] * len(tmph)
+            tmph.insert(0, '')
+            outnew.write('\t'.join(tmph)+'\n')
+            outold.write('\t'.join(tmph)+'\n')
+            con_mat.write('\t'.join(tmph)+'\n')
 
-        genes = {}
-        for i in infile:
-            ii = i.strip().split()
-            gt = ii[0].split('--')
-            ii[0] = gt[0]
-            if gt[0] not in genes:
-                genes[gt[0]] = [0, [], []]
-            if gt[1] == 'C':
-                genes[gt[0]][0] += 1
-                genes[gt[0]][1] = ii[1:]
-                outnew.write('\t'.join(ii)+'\n')
-            elif gt[1] == 'T':
-                genes[gt[0]][0] += 2
-                genes[gt[0]][2] = ii[1:]
-                outold.write('\t'.join(ii)+'\n')
+            genes = {}
+            for i in infile:
+                ii = i.strip().split()
+                gt = ii[0].split('--')
+                ii[0] = gt[0]
+                if gt[0] not in genes:
+                    genes[gt[0]] = [0, [], []]
+                if gt[1] == 'C':
+                    genes[gt[0]][0] += 1
+                    genes[gt[0]][1] = ii[1:]
+                    outnew.write('\t'.join(ii)+'\n')
+                elif gt[1] == 'T':
+                    genes[gt[0]][0] += 2
+                    genes[gt[0]][2] = ii[1:]
+                    outold.write('\t'.join(ii)+'\n')
 
-        for gi in genes:
-            con_mat.write(gi)
-            if genes[gi][0] == 3:
-                for ci in range(len(genes[gi][1])):
-                    con_mat.write('\t'+genes[gi][1][ci]+':'+genes[gi][2][ci])
-                con_mat.write('\n')
-            elif genes[gi][0] == 1:
-                outold.write(gi+'\t'+'\t'.join(fill_na)+'\n')
-                for ci in range(len(genes[gi][1])):
-                    con_mat.write('\t'+genes[gi][1][ci]+':'+'0')
-                con_mat.write('\n')
-            elif genes[gi][0] == 2:
-                outnew.write(gi+'\t'+'\t'.join(fill_na)+'\n')
-                for ci in range(len(genes[gi][2])):
-                    con_mat.write('\t'+'0'+':'+genes[gi][2][ci])
-                con_mat.write('\n')
+            for gi in genes:
+                con_mat.write(gi)
+                if genes[gi][0] == 3:
+                    for ci in range(len(genes[gi][1])):
+                        con_mat.write('\t'+genes[gi][1][ci]+':'+genes[gi][2][ci])
+                    con_mat.write('\n')
+                elif genes[gi][0] == 1:
+                    outold.write(gi+'\t'+'\t'.join(fill_na)+'\n')
+                    for ci in range(len(genes[gi][1])):
+                        con_mat.write('\t'+genes[gi][1][ci]+':'+'0')
+                    con_mat.write('\n')
+                elif genes[gi][0] == 2:
+                    outnew.write(gi+'\t'+'\t'.join(fill_na)+'\n')
+                    for ci in range(len(genes[gi][2])):
+                        con_mat.write('\t'+'0'+':'+genes[gi][2][ci])
+                    con_mat.write('\n')
 
-        outnew.close()
         outold.close()
         con_mat.close()
         infile.close()
@@ -222,53 +213,49 @@ class Replacement(Step):
     @utils.add_log
     def replacment_stat(self, inmat, outpre, mincell=10, mingene=10):
 
-        outcell = open(outpre+'.fraction_of_newRNA_per_cell.txt', 'w')
-        outgene = open(outpre+'.fraction_of_newRNA_per_gene.txt', 'w')
-        outmat = open(outpre+'.fraction_of_newRNA_matrix.txt', 'w')
+        with open(outpre+'.fraction_of_newRNA_per_cell.txt', 'w') as outcell:
+            outgene = open(outpre+'.fraction_of_newRNA_per_gene.txt', 'w')
+            outmat = open(outpre+'.fraction_of_newRNA_matrix.txt', 'w')
 
-        cells = {}
-        genes = {}
-        mats = {}
-        with open(inmat) as f:
-            hh = f.readline().strip().split()
-            hh.insert(0, '')
-            outmat.write('\t'.join(hh)+'\n')
-            for h in hh[1:]:
-                cells[h] = [[], []]
-            for i in f:
-                ii = i.strip().split()
-                mats[ii[0]] = []
-                genes[ii[0]] = [[], []]
-                for xi in range(1, len(ii)):
-                    xx = [int(x) for x in ii[xi].split(':')]
-                    if sum(xx) == 0:
-                        tmpf = 'NA'
-                    else:
-                        tmpf = float(xx[0])/(xx[0]+xx[1])
-                    mats[ii[0]].append(str(tmpf))
-                    if sum(xx) < 2:
-                        continue
-                    cells[hh[xi]][0].append(float(xx[0]))
-                    cells[hh[xi]][1].append(xx[1])
-                    genes[ii[0]][0].append(float(xx[0]))
-                    genes[ii[0]][1].append(xx[1])
+            cells = {}
+            genes = {}
+            mats = {}
+            with open(inmat) as f:
+                hh = f.readline().strip().split()
+                hh.insert(0, '')
+                outmat.write('\t'.join(hh)+'\n')
+                for h in hh[1:]:
+                    cells[h] = [[], []]
+                for i in f:
+                    ii = i.strip().split()
+                    mats[ii[0]] = []
+                    genes[ii[0]] = [[], []]
+                    for xi in range(1, len(ii)):
+                        xx = [int(x) for x in ii[xi].split(':')]
+                        tmpf = 'NA' if sum(xx) == 0 else float(xx[0])/(xx[0]+xx[1])
+                        mats[ii[0]].append(str(tmpf))
+                        if sum(xx) < 2:
+                            continue
+                        cells[hh[xi]][0].append(float(xx[0]))
+                        cells[hh[xi]][1].append(xx[1])
+                        genes[ii[0]][0].append(float(xx[0]))
+                        genes[ii[0]][1].append(xx[1])
 
-        for ci in cells:
-            if len(cells[ci][0]) < mincell:
-                continue
-            cfloat = sum(cells[ci][0])/(sum(cells[ci][0])+sum(cells[ci][1]))
-            outcell.write(ci+'\t'+str(cfloat)+'\n')
+            for ci, value in cells.items():
+                if len(value[0]) < mincell:
+                    continue
+                cfloat = sum(cells[ci][0])/(sum(cells[ci][0])+sum(cells[ci][1]))
+                outcell.write(ci+'\t'+str(cfloat)+'\n')
 
-        for gi in genes:
-            if len(genes[gi][0]) < mingene:
-                continue
-            gfloat = sum(genes[gi][0])/(sum(genes[gi][0])+sum(genes[gi][1]))
-            outgene.write(gi+'\t'+str(gfloat)+'\n')
+            for gi, value_ in genes.items():
+                if len(value_[0]) < mingene:
+                    continue
+                gfloat = sum(genes[gi][0])/(sum(genes[gi][0])+sum(genes[gi][1]))
+                outgene.write(gi+'\t'+str(gfloat)+'\n')
 
-        for mi in mats:
-            outmat.write(mi+'\t'+'\t'.join(mats[mi])+'\n')
+            for mi, value__ in mats.items():
+                outmat.write(mi+'\t' + '\t'.join(value__) + '\n')
 
-        outcell.close()
         outgene.close()
         outmat.close()
 
@@ -304,9 +291,7 @@ class Replacement(Step):
         fig.update_yaxes(showgrid=False, linecolor='black', showline=True, ticks='outside',
                          title_text="Fraction new RNA (per cell)", row=1, col=2, rangemode="tozero")
 
-        div = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
-
-        return div
+        return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
 
     def report_prepare(self, outdiv):
         self.add_data(replacement=outdiv)

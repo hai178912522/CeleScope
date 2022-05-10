@@ -109,13 +109,11 @@ class Analysis_snp(Step):
 
     def get_venn_plot(self):
         df_top_5 = self.get_df_table().sort_values(by="ncell_alt", ascending=False).iloc[:5, :]
-        plot = {}
         cid_lst = df_top_5.loc[:, "CID"].to_list()
         vid_lst = df_top_5.loc[:, "VID"].to_list()
-        for cid, vid in zip(cid_lst, vid_lst):
-            plot[f"VID_{vid}"] = set(cid)
+        plot = {f"VID_{vid}": set(cid) for cid, vid in zip(cid_lst, vid_lst)}
         share_cid = list(set.intersection(*map(set, cid_lst)))
-        if share_cid == []:
+        if not share_cid:
             share_cid.append("None")
         # venn plot
         set_cid = list(plot.values())
@@ -197,8 +195,7 @@ class Analysis_snp(Step):
         '''
         config = configparser.ConfigParser()
         config.read(self.annovar_config)
-        section = config['ANNOVAR']
-        return section
+        return config['ANNOVAR']
 
 
 @utils.add_log

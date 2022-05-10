@@ -30,7 +30,7 @@ def read_cutadapt_log(cutadapt_log):
     metrics_dict = {}
     remove_strs = [r',', r' bp', r'\(.*\)']
 
-    for _line_index, line in enumerate(cutadapt_log.split('\n')):
+    for line in cutadapt_log.split('\n'):
         line = line.strip()
         if not line:
             continue
@@ -63,10 +63,7 @@ class Cutadapt(Step):
         self.adapter_args += ADAPTER
 
         # out files
-        if args.gzip:
-            suffix = ".gz"
-        else:
-            suffix = ""
+        suffix = ".gz" if args.gzip else ""
         self.out_fq2 = f'{self.outdir}/{self.sample}_clean_2.fq{suffix}'
         self.cutadapt_log_file = f'{self.outdir}/cutadapt.log'
 
@@ -78,8 +75,7 @@ class Cutadapt(Step):
         adapter_args = []
         if adapter_fasta and adapter_fasta != 'None':
             with pysam.FastxFile(adapter_fasta) as fh:
-                for read in fh:
-                    adapter_args.append(f'{read.name}={read.sequence}')
+                adapter_args.extend(f'{read.name}={read.sequence}' for read in fh)
         return adapter_args
 
 
@@ -134,7 +130,7 @@ class Cutadapt(Step):
 
     @utils.add_log
     def run(self):
-        adapter_args_str = " ".join(['-a ' + adapter for adapter in self.adapter_args])
+        adapter_args_str = " ".join([f'-a {adapter}' for adapter in self.adapter_args])
         cmd = (
             'cutadapt '
             f'{adapter_args_str} '

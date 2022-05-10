@@ -56,8 +56,7 @@ class Filter_snp(Step):
             threshold_method=self.threshold_method,
             hard_threshold=self.hard_threshold,
         )
-        threshold = runner.run()
-        return threshold
+        return runner.run()
 
     @staticmethod
     def filter_array(count_array, threshold):

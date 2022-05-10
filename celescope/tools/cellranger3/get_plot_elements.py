@@ -89,7 +89,10 @@ def get_plot_segment(start_index, end_index, sorted_bc, cell_barcodes, legend=Fa
     Helper function to build a plot segment.
     """
     assert end_index > start_index
-    num_cells = sum([1 for i in range(start_index, end_index) if sorted_bc[i] in cell_barcodes])
+    num_cells = sum(
+        sorted_bc[i] in cell_barcodes for i in range(start_index, end_index)
+    )
+
     density = float(num_cells)/float(end_index-start_index)
     return BarcodeRankPlotSegment(start=start_index, end=end_index, cell_density=density, legend=legend)
 
@@ -135,7 +138,7 @@ def convert_numpy_array_to_line_chart(array, ntype):
     rows = []
     previous_count = None
     for (index,), count in np.ndenumerate(array):
-        if index == 0 or index == len(array)-1:
+        if index in [0, len(array) - 1]:
             rows.append([index, ntype(count)])
         elif previous_count != count:
             previous_index = rows[-1][0]
@@ -159,29 +162,34 @@ def counter_barcode_rank_plot_data(count_data_path):
     sorted_counts = np.array(count_data['UMI'])
     cell_nums = len(cell_bc)
     total_bc = len(sorted_bc)
-    # find the first barcode which is not a cell
-    first_non_cell = total_bc
-    for i, bc in enumerate(sorted_bc):
-        if bc not in cell_bc:
-            first_non_cell = i
-            break
+    first_non_cell = next(
+        (i for i, bc in enumerate(sorted_bc) if bc not in cell_bc), total_bc
+    )
 
-    # find the last barcode which is a cell
-    last_cell = 0
-    for i in reversed(range(total_bc)):
-        if sorted_bc[i] in cell_bc:
-            last_cell = i
-            break
+    last_cell = next(
+        (i for i in reversed(range(total_bc)) if sorted_bc[i] in cell_bc), 0
+    )
 
     ranges = [0, first_non_cell, last_cell+1, total_bc]
-    plot_segments = []
-    plot_segments.append(BarcodeRankPlotSegment(start=0, end=ranges[1], cell_density=1.0, legend=True))
+    plot_segments = [
+        BarcodeRankPlotSegment(
+            start=0, end=ranges[1], cell_density=1.0, legend=True
+        )
+    ]
+
     plot_segments.append(BarcodeRankPlotSegment(start=ranges[2], end=ranges[3], cell_density=0.0, legend=True))
 
     mixed_segments = segment_log_plot_by_length(sorted_counts, ranges[1], ranges[2])
-    for i in range(len(mixed_segments) - 1):
-        plot_segments.append(
-            get_plot_segment(mixed_segments[i], mixed_segments[i + 1], sorted_bc, cell_bc, legend=False))
+    plot_segments.extend(
+        get_plot_segment(
+            mixed_segments[i],
+            mixed_segments[i + 1],
+            sorted_bc,
+            cell_bc,
+            legend=False,
+        )
+        for i in range(len(mixed_segments) - 1)
+    )
 
     return sorted_counts, plot_segments, cell_nums
 
@@ -190,7 +198,7 @@ def _plot_barcode_rank(chart, counts, num_cells):
     """ Generate a generic barcode rank plot """
     rows = convert_numpy_array_to_line_chart(counts, int)
 
-    for _i, row in enumerate(rows):
+    for row in rows:
         index, count = row[0], row[1]
         if index < num_cells:
             series_list = [chart['data'][0]]
@@ -280,11 +288,7 @@ def _plot_counter_barcode_rank(chart, counts, plot_segments):
 
 @add_log
 def get_plot_data(plot_segments, counts):
-    plot_data = []
-    for segment in plot_segments:
-        plot_data.append(build_plot_data_dict(segment, counts))
-
-    return plot_data
+    return [build_plot_data_dict(segment, counts) for segment in plot_segments]
 
 
 def plot_barcode_rank(count_file_path):
@@ -313,6 +317,6 @@ def plot_barcode_rank(count_file_path):
 
     fig = go.Figure(data=plotly_data, layout=layout)
 
-    chart = pltoff.plot(fig, include_plotlyjs=True, output_type='div', config=config)
-
-    return chart
+    return pltoff.plot(
+        fig, include_plotlyjs=True, output_type='div', config=config
+    )

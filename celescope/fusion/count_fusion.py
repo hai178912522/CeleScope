@@ -23,11 +23,8 @@ class Count_fusion(Count_bam):
             key: sequence name in fusion.fasta
             value: end postion of the first gene(1-based).
         """
-        pos_dict = {}
         df = pd.read_csv(fusion_pos_file, sep="\t")
-        for name, pos in zip(df.iloc[:, 0], df.iloc[:, 1]):
-            pos_dict[name] = pos
-        return pos_dict
+        return dict(zip(df.iloc[:, 0], df.iloc[:, 1]))
 
     def process_bam(self):
         """

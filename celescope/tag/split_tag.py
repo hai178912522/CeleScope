@@ -28,7 +28,7 @@ def get_clonotypes_table(df):
     clonotypes = clonotypes.rename(columns={'barcode': 'barcode_count'})
     sum_cb = clonotypes['barcode_count'].sum()
     clonotypes['percent'] = clonotypes['barcode_count'].apply(lambda x: round(x/sum_cb, 2))
-    clonotypes['clonetype_ID'] = [i for i in range(1, clonotypes.shape[0]+1)]
+    clonotypes['clonetype_ID'] = list(range(1, clonotypes.shape[0]+1))
     group_l.insert(0, 'clonetype_ID')
     group_l.append('barcode_count')
     group_l.append('percent')
